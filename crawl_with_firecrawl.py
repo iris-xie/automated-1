@@ -781,7 +781,7 @@ def main():
     parser.add_argument("--env-file", default=pre_env_path, help="启动前加载的 .env 文件路径（支持 --env-file=path 或 ENV_FILE）")
     args = parser.parse_args()
 
-    start_url = normalize_url(args.start_url)
+    start_url = args.start_url
     firecrawl_base = args.firecrawl_base
     max_pages = args.max_pages
     delay = args.delay
