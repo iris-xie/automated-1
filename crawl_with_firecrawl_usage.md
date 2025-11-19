@@ -16,6 +16,8 @@
 - `FIRECRAWL_TOKEN` 设置 Firecrawl 访问令牌（自动拼接为 `Authorization: Bearer <token>`）
 - `FIRECRAWL_AUTH` 兼容旧授权变量（若不以 `Bearer ` 开头会自动拼接）
 - `FIRECRAWL_EXTRA_SCRAPE_OPTIONS` 以 JSON 形式提供额外抓取选项，合并到请求的 `scrape_options` 中
+- `FIRECRAWL_MAX_DISCOVERY_DEPTH` 设置发现深度（顶层参数 `maxDiscoveryDepth`）
+- `FIRECRAWL_LIMIT` 设置每批抓取上限（顶层参数 `limit`）
 
 示例 `.env`（位于仓库根目录）：
 
@@ -23,7 +25,9 @@
 FIRECRAWL_BASE_URL=http://localhost:3002
 FIRECRAWL_TOKEN=
 FIRECRAWL_AUTH=
-FIRECRAWL_EXTRA_SCRAPE_OPTIONS={"formats":["markdown","markdownDelta","html"],"crawlOptions":{"maxDepth":1,"limit":100}}
+FIRECRAWL_EXTRA_SCRAPE_OPTIONS={"formats":["markdown","markdownDelta","html"]}
+FIRECRAWL_MAX_DISCOVERY_DEPTH=1
+FIRECRAWL_LIMIT=100
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=qwen:3b
 OUTPUT_DIR=results
@@ -113,13 +117,18 @@ python crawl_with_firecrawl.py \
 
 - 默认请求体包含以下 `scrape_options`：
   - `formats`: `["markdown", "markdownDelta", "html"]`
-  - `crawlOptions`: `{ "maxDepth": 1, "limit": 100 }`
-- 可通过环境变量 `FIRECRAWL_EXTRA_SCRAPE_OPTIONS` 提供 JSON 以合并额外选项（顶层浅合并，子字典使用更新策略）。
-  - 示例：
-    ```bash
-    $env:FIRECRAWL_EXTRA_SCRAPE_OPTIONS='{"crawlOptions": {"maxDepth": 2, "limit": 50}, "includeSelectors": ["article"], "removeSelectors": ["nav", "footer"]}'
-    ```
-  - 若提供了同名顶层键（如 `crawlOptions`），将以你提供的内容覆盖默认的子键（未提供的子键保留默认值）。
+- 顶层请求参数现在直接包含发现与分页控制：
+  - `maxDiscoveryDepth`: 默认 `1`
+  - `limit`: 默认 `100`
+  这两个参数不再出现在 `scrape_options.crawlOptions` 中。
+- 可通过环境变量提供配置：
+  - `FIRECRAWL_EXTRA_SCRAPE_OPTIONS`：仅用于合并 `scrape_options` 的内容（如 `formats`、`includeSelectors`、`removeSelectors` 等）；其中不得包含 `crawlOptions`。
+    - 示例：
+      ```bash
+      $env:FIRECRAWL_EXTRA_SCRAPE_OPTIONS='{"includeSelectors": ["article"], "removeSelectors": ["nav", "footer"]}'
+      ```
+    - 若包含 `crawlOptions` 将被忽略。
+  - `FIRECRAWL_MAX_DISCOVERY_DEPTH` 与 `FIRECRAWL_LIMIT`：分别控制顶层的 `maxDiscoveryDepth` 与 `limit`，优先级高于默认值。
 
 ## 注意事项
 

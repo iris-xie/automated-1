@@ -659,11 +659,17 @@ def call_firecrawl_start(firecrawl_base: str, start_url: str, auth_header: str =
     # Default scrape options requested by user
     scrape_options = {
         "formats": ["markdown"],
-        "crawlOptions": {
-            "maxDepth": 3,
-            "limit": 10000000000,
-        },
     }
+    # Top-level discovery controls (do not include crawlOptions in scrape_options)
+    # Defaults can be overridden via environment variables
+    try:
+        max_discovery_depth = int(os.environ.get("FIRECRAWL_MAX_DISCOVERY_DEPTH", "1") or "1")
+    except Exception:
+        max_discovery_depth = 1
+    try:
+        limit = int(os.environ.get("FIRECRAWL_LIMIT", "100") or "100")
+    except Exception:
+        limit = 100
     # Merge any extra options provided via environment (JSON string) into scrape_options
     # This supports "将其他调用附加参数也合并进这个参数中" 的需求
     extra_json = os.environ.get("FIRECRAWL_EXTRA_SCRAPE_OPTIONS")
@@ -677,12 +683,17 @@ def call_firecrawl_start(firecrawl_base: str, start_url: str, auth_header: str =
                         scrape_options[k].update(v)
                     else:
                         scrape_options[k] = v
+                # Ensure no crawlOptions key is sent inside scrape_options
+                if "crawlOptions" in scrape_options:
+                    scrape_options.pop("crawlOptions", None)
         except Exception as e:
             logging.warning(f"Failed to parse FIRECRAWL_EXTRA_SCRAPE_OPTIONS: {e}")
 
     payload = {
         "url": start_url,
         "scrape_options": scrape_options,
+        "maxDiscoveryDepth": max_discovery_depth,
+        "limit": limit,
     }
     headers = {"Authorization": auth_header} if auth_header else None
     try:
