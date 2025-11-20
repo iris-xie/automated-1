@@ -264,7 +264,7 @@ def write_cn_markdown(item: Dict[str, Any], out_dir: str) -> Optional[str]:
 async def main() -> None:
     setup_logger()
     parser = argparse.ArgumentParser(description="使用 Firecrawl 抓取并写入中文 Markdown")
-    parser.add_argument("start_url", help="起始 URL")
+    parser.add_argument("--start-url", help="起始 URL")
     parser.add_argument("--firecrawl-base", default=os.environ.get("FIRECRAWL_BASE_URL", "https://api.firecrawl.dev"))
     parser.add_argument("--auth", default=os.environ.get("FIRECRAWL_API_KEY", ""), help="Authorization 头或 API Key")
     parser.add_argument("--output-dir", default=os.environ.get("CN_OUTPUT_DIR", "results"), help="中文 Markdown 输出目录")
