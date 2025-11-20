@@ -934,6 +934,7 @@ def get_md_and_links_from_firecrawl_result(result: dict) -> tuple[list[dict], st
         next_url = None
 
     data = result.get("data")
+    logging.info(f"Firecrawl result: {result}")
     if isinstance(data, list):
         for entry in data:
             if not isinstance(entry, dict):
@@ -1041,6 +1042,7 @@ def main():
         start_info = call_firecrawl_start(firecrawl_base, start_url, auth_header)
         start_url_status = start_info.get("url") if isinstance(start_info, dict) else None
         result = call_firecrawl_next(start_url_status, auth_header) if start_url_status else {}
+        logging.info(f"Firecrawl result: {result}")
     while True:
         items, next_url = get_md_and_links_from_firecrawl_result(result)
 
