@@ -869,55 +869,88 @@ async def call_firecrawl_next_async(next_url: str, auth_header: str = "") -> dic
     if not api_key:
         api_key = os.environ.get("FIRECRAWL_API_KEY")
 
-    # 尝试使用 SDK（仅在能解析出 crawl_id 与 api_url 时），用 to_thread 避免阻塞
-    if crawl_id and api_url:
-        try:
-            from firecrawl import Firecrawl, PaginationConfig  # type: ignore
-            kwargs = {}
-            if api_key:
-                kwargs["api_key"] = api_key
-            kwargs["api_url"] = api_url
-            client = Firecrawl(**kwargs)
-
-            status = await asyncio.to_thread(
-                client.get_crawl_status,
-                crawl_id,
-                pagination_config=PaginationConfig(auto_paginate=False),
-            )
-            return {
-                "data": getattr(status, "data", []) or [],
-                "next": getattr(status, "next", None),
-                "status": getattr(status, "status", None),
-                "completed": getattr(status, "completed", None),
-                "total": getattr(status, "total", None),
-            }
-        except ImportError:
-            logging.info("Firecrawl SDK 未安装，改用异步 HTTP。请安装：pip install firecrawl-py")
-        except Exception as e:
-            logging.warning(f"Firecrawl SDK 获取下一页失败，改用异步 HTTP：{e}")
-
-    # 异步 HTTP 回退
-    headers = {"Authorization": auth_header} if auth_header else None
+    # 轮询：当 total < 1 时继续等待；仅在 (total > 1 且 completed > 1) 或 (total == 1 且 completed == 1) 时不再等待
     try:
+        min_delay = float(os.environ.get("FIRECRAWL_MIN_DELAY", 3.0))
+    except Exception:
+        min_delay = 3.0
+
+    headers = {"Authorization": auth_header} if auth_header else None
+
+    while True:
+        result: dict | None = None
+
+        # 优先 SDK（解析到 crawl_id 与 api_url 时）
+        if crawl_id and api_url:
+            try:
+                from firecrawl import Firecrawl, PaginationConfig  # type: ignore
+                kwargs = {}
+                if api_key:
+                    kwargs["api_key"] = api_key
+                kwargs["api_url"] = api_url
+                client = Firecrawl(**kwargs)
+
+                status = await asyncio.to_thread(
+                    client.get_crawl_status,
+                    crawl_id,
+                    pagination_config=PaginationConfig(auto_paginate=False),
+                )
+                result = {
+                    "data": getattr(status, "data", []) or [],
+                    "next": getattr(status, "next", None),
+                    "status": getattr(status, "status", None),
+                    "completed": getattr(status, "completed", None),
+                    "total": getattr(status, "total", None),
+                }
+            except ImportError:
+                logging.info("Firecrawl SDK 未安装，改用异步 HTTP。请安装：pip install firecrawl-py")
+            except Exception as e:
+                logging.warning(f"Firecrawl SDK 获取下一页失败，改用异步 HTTP：{e}")
+
+        # 异步 HTTP 回退或 SDK 未成功
+        if result is None:
+            try:
+                try:
+                    import httpx  # type: ignore
+                    async with httpx.AsyncClient() as ac:
+                        resp = await ac.get(next_url, headers=headers, timeout=60)
+                        resp.raise_for_status()
+                        result = resp.json()
+                except ImportError:
+                    logging.info("httpx 未安装，改用同步 requests 在线程中执行。请安装：pip install httpx")
+
+                    def _sync_get_json(url: str, headers: dict | None) -> dict:
+                        resp = requests.get(url, headers=headers, timeout=60)
+                        resp.raise_for_status()
+                        return resp.json()
+
+                    result = await asyncio.to_thread(_sync_get_json, next_url, headers)
+            except Exception as e:
+                logging.error(f"Firecrawl next failed for {next_url}: {e}")
+                result = {}
+
+        # 判定是否继续等待
+        total = 0
+        completed = 0
         try:
-            import httpx  # type: ignore
-        except ImportError:
-            logging.info("httpx 未安装，改用同步 requests 在线程中执行。请安装：pip install httpx")
+            total = int((result or {}).get("total", 0) or 0)
+        except Exception:
+            total = 0
+        try:
+            completed = int((result or {}).get("completed", 0) or 0)
+        except Exception:
+            completed = 0
 
-            def _sync_get_json(url: str, headers: dict | None) -> dict:
-                resp = requests.get(url, headers=headers, timeout=60)
-                resp.raise_for_status()
-                return resp.json()
+        if total < 1:
+            await asyncio.sleep(min_delay)
+            continue
 
-            return await asyncio.to_thread(_sync_get_json, next_url, headers)
+        stop_waiting = (total > 1 and completed > 1) or (total == 1 and completed == 1)
+        if stop_waiting:
+            return result or {}
 
-        async with httpx.AsyncClient() as ac:
-            resp = await ac.get(next_url, headers=headers, timeout=60)
-            resp.raise_for_status()
-            return resp.json()
-    except Exception as e:
-        logging.error(f"Firecrawl next failed for {next_url}: {e}")
-        return {}
+        # 仍未达到停止条件，继续等待
+        await asyncio.sleep(min_delay)
 
 def get_md_and_links_from_firecrawl_result(result: dict) -> tuple[list[dict], str | None]:
     """Parse Firecrawl v2 crawl batch response.
