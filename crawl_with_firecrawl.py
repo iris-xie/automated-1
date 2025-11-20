@@ -31,6 +31,7 @@ import sys
 import time
 import json
 import logging
+import asyncio
 from urllib.parse import urlparse, urljoin, urldefrag
 from difflib import SequenceMatcher
 from collections import deque
@@ -38,14 +39,51 @@ from datetime import datetime, timedelta
 from markdownify import markdownify as md  # type: ignore
 import html2text  # type: ignore
 import requests
-
+from firecrawl import AsyncFirecrawl  # type: igno
+import httpx
 
 def setup_logger():
-    logging.basicConfig(
-        level=logging.INFO,
-        format="[%(asctime)s] %(levelname)s: %(message)s",
+    """Configure logging to write to ./logs/crawl.log and console.
+    Creates a sibling 'logs' directory next to this script if missing.
+    """
+    try:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+    except Exception:
+        base_dir = os.getcwd()
+    logs_dir = os.path.join(base_dir, "logs")
+    try:
+        os.makedirs(logs_dir, exist_ok=True)
+    except Exception:
+        # If directory creation fails, continue with console-only logging
+        logs_dir = base_dir
+
+    log_file = os.path.join(logs_dir, "crawl.log")
+
+    formatter = logging.Formatter(
+        "[%(asctime)s] %(levelname)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
+
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    # Avoid duplicate handlers if setup_logger is called multiple times
+    root.handlers = []
+
+    # Console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(formatter)
+    root.addHandler(console_handler)
+
+    # File handler
+    try:
+        file_handler = logging.FileHandler(log_file, encoding="utf-8")
+        file_handler.setLevel(logging.INFO)
+        file_handler.setFormatter(formatter)
+        root.addHandler(file_handler)
+    except Exception as e:
+        # Fall back silently to console-only if file handler fails
+        logging.warning(f"Failed to attach file logger at {log_file}: {e}")
 
 
 def load_env_file(path: str = ".env") -> None:
@@ -654,68 +692,232 @@ def reconcile_terms(proposed: list[str], pool: list[str], max_size: int, ollama_
 
 
 def call_firecrawl_start(firecrawl_base: str, start_url: str, auth_header: str = "") -> dict:
-    """Start a v2 crawl session by POSTing to /v2/crawl with the root URL."""
-    endpoint = firecrawl_base.rstrip("/") + "/v2/crawl"
-    # Default scrape options requested by user
-    scrape_options = {
-        "formats": ["markdown"],
-    }
-    # Top-level discovery controls (do not include crawlOptions in scrape_options)
-    # Defaults can be overridden via environment variables
+    """同步包装：委托到异步的启动函数。"""
     try:
-        max_discovery_depth = int(os.environ.get("FIRECRAWL_MAX_DISCOVERY_DEPTH", "1") or "1")
-    except Exception:
-        max_discovery_depth = 1
+        return asyncio.run(call_firecrawl_start_async(firecrawl_base, start_url, auth_header))
+    except RuntimeError:
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(call_firecrawl_start_async(firecrawl_base, start_url, auth_header))
+
+
+async def call_firecrawl_start_async(firecrawl_base: str, start_url: str, auth_header: str = "") -> dict:
+    """启动 Firecrawl v2 爬取并返回官方 start 响应结构。
+
+    返回结构体与官方 API /v2/crawl 一致：
+    {"success": true, "id": "<string>", "url": "<string>"}
+    不在此函数中拉取数据，数据获取由调用方使用返回的 url 调用状态接口完成。
+    """
+    # 读取限制与默认抓取选项
     try:
         limit = int(os.environ.get("FIRECRAWL_LIMIT", "100") or "100")
     except Exception:
         limit = 100
-    # Merge any extra options provided via environment (JSON string) into scrape_options
-    # This supports "将其他调用附加参数也合并进这个参数中" 的需求
+    # 额外控制项的默认值（支持 ENV 覆盖）
+    try:
+        max_concurrency = int(os.environ.get("FIRECRAWL_MAX_CONCURRENCY", "100") or "100")
+    except Exception:
+        max_concurrency = 100
+    sitemap_strategy = os.environ.get("FIRECRAWL_SITEMAP", "include") or "include"
+    try:
+        max_discovery_depth = int(os.environ.get("FIRECRAWL_MAX_DISCOVERY_DEPTH", "2") or "2")
+    except Exception:
+        max_discovery_depth = 2
+    # 是否爬取整个域名，默认 true，可用 ENV 覆盖
+    try:
+        ced_raw = os.environ.get("FIRECRAWL_CRAWL_ENTIRE_DOMAIN", "true")
+        crawl_entire_domain = str(ced_raw).strip().lower() in ("true", "1", "yes", "on")
+    except Exception:
+        crawl_entire_domain = True
+
+    scrape_options: dict = {
+        "formats": ["markdown"],
+        "waitFor": 1000,
+    }
     extra_json = os.environ.get("FIRECRAWL_EXTRA_SCRAPE_OPTIONS")
     if extra_json:
         try:
             extra = json.loads(extra_json)
             if isinstance(extra, dict):
-                # shallow merge top-level; nested dicts get updated
                 for k, v in extra.items():
                     if isinstance(v, dict) and isinstance(scrape_options.get(k), dict):
                         scrape_options[k].update(v)
                     else:
                         scrape_options[k] = v
-                # Ensure no crawlOptions key is sent inside scrape_options
+                # 防止误将 crawlOptions 放入 scrape_options
                 if "crawlOptions" in scrape_options:
                     scrape_options.pop("crawlOptions", None)
         except Exception as e:
             logging.warning(f"Failed to parse FIRECRAWL_EXTRA_SCRAPE_OPTIONS: {e}")
 
+    # 尝试使用官方异步 SDK
+    try:
+        from firecrawl import AsyncFirecrawl  # type: ignore
+        # 从 Authorization 头或环境变量解析 API Key
+        api_key_env = os.environ.get("FIRECRAWL_API_KEY")
+        api_key = None
+        if auth_header and auth_header.strip():
+            # 兼容 "Bearer <KEY>" 或直接传入 KEY
+            ah = auth_header.strip()
+            if ah.lower().startswith("bearer "):
+                api_key = ah[7:].strip()
+            else:
+                api_key = ah
+        if not api_key:
+            api_key = api_key_env
+
+        # 初始化异步 SDK 客户端
+        firecrawl_kwargs = {}
+        if api_key:
+            firecrawl_kwargs["api_key"] = api_key
+        if firecrawl_base:
+            firecrawl_kwargs["api_url"] = firecrawl_base.rstrip("/")
+
+        client = AsyncFirecrawl(**firecrawl_kwargs)
+
+        # 异步启动爬取
+        started = await client.start_crawl(
+            url=start_url,
+            limit=limit,
+            scrape_options=scrape_options,
+            max_concurrency=max_concurrency,
+            sitemap=sitemap_strategy,
+            max_discovery_depth=max_discovery_depth,
+            crawl_entire_domain=crawl_entire_domain,
+        )
+        start_status_url = f"{firecrawl_base.rstrip('/')}/v2/crawl/{getattr(started, 'id', '')}"
+        return {
+            "success": True if getattr(started, "id", None) else False,
+            "id": getattr(started, "id", None),
+            "url": start_status_url,
+        }
+    except ImportError:
+        logging.info("Firecrawl SDK 未安装，回退到直接调用 HTTP API。请安装：pip install firecrawl-py")
+    except Exception as e:
+        logging.warning(f"Firecrawl 异步 SDK 调用失败，回退到 HTTP API：{e}")
+
+    # 回退：直接调用 HTTP API 的 /v2/crawl
+    endpoint = firecrawl_base.rstrip("/") + "/v2/crawl"
     payload = {
         "url": start_url,
-        "scrape_options": scrape_options,
-        "maxDiscoveryDepth": max_discovery_depth,
+        "scrapeOptions": scrape_options,
         "limit": limit,
+        "maxConcurrency": max_concurrency,
+        "sitemap": sitemap_strategy,
+        "maxDiscoveryDepth": max_discovery_depth,
+        "crawlEntireDomain": crawl_entire_domain,
     }
     headers = {"Authorization": auth_header} if auth_header else None
     try:
-        resp = requests.post(endpoint, json=payload, headers=headers, timeout=60)
-        resp.raise_for_status()
-        return resp.json()
-    except requests.RequestException as e:
+        # 在异步函数中使用 httpx
+        try:
+            import httpx
+        except ImportError:
+            # 若无 httpx，则在线程中运行同步请求
+            def _sync_post():
+                resp = requests.post(endpoint, json=payload, headers=headers, timeout=60)
+                resp.raise_for_status()
+                return resp.json()
+            data = await asyncio.to_thread(_sync_post)
+        else:
+            async with httpx.AsyncClient() as ac:
+                resp = await ac.post(endpoint, json=payload, headers=headers, timeout=60)
+                resp.raise_for_status()
+                data = resp.json()
+
+        if isinstance(data, dict):
+            cid = data.get("id")
+            if cid and not data.get("url"):
+                data["url"] = f"{firecrawl_base.rstrip('/')}/v2/crawl/{cid}"
+        return data
+    except Exception as e:
         logging.error(f"Firecrawl start failed for {start_url}: {e}")
-        return {}
+        return {"success": False, "id": None, "url": None}
 
 
 def call_firecrawl_next(next_url: str, auth_header: str = "") -> dict:
-    """Fetch the next batch using the absolute `next` URL provided by Firecrawl."""
+    """同步包装：委托到异步的状态查询。"""
+    try:
+        return asyncio.run(call_firecrawl_next_async(next_url, auth_header))
+    except RuntimeError:
+        # 若已有运行中的事件循环（例如在某些环境），改用 to_thread 包装同步回退
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(call_firecrawl_next_async(next_url, auth_header))
+
+
+async def call_firecrawl_next_async(next_url: str, auth_header: str = "") -> dict:
+    """异步获取下一页数据：优先使用 SDK（在线程中执行），否则使用 httpx 异步请求。
+
+    返回结构保持为包含 data 与 next 的字典。
+    """
+    if not next_url:
+        return {}
+    # 解析 api_url 与 crawl_id
+    api_key = None
+    try:
+        parsed = urlparse(next_url)
+        api_url = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else None
+        m = re.search(r"/v2/crawl/([a-zA-Z0-9\-]+)", next_url)
+        crawl_id = m.group(1) if m else None
+    except Exception:
+        api_url = None
+        crawl_id = None
+
+    # 从 Authorization 或环境变量读取 API Key
+    if auth_header and auth_header.strip():
+        ah = auth_header.strip()
+        api_key = ah[7:].strip() if ah.lower().startswith("bearer ") else ah
+    if not api_key:
+        api_key = os.environ.get("FIRECRAWL_API_KEY")
+
+    # 尝试使用 SDK（仅在能解析出 crawl_id 与 api_url 时），用 to_thread 避免阻塞
+    if crawl_id and api_url:
+        try:
+            from firecrawl import Firecrawl, PaginationConfig  # type: ignore
+            kwargs = {}
+            if api_key:
+                kwargs["api_key"] = api_key
+            kwargs["api_url"] = api_url
+            client = Firecrawl(**kwargs)
+
+            status = await asyncio.to_thread(
+                client.get_crawl_status,
+                crawl_id,
+                pagination_config=PaginationConfig(auto_paginate=False),
+            )
+            return {
+                "data": getattr(status, "data", []) or [],
+                "next": getattr(status, "next", None),
+                "status": getattr(status, "status", None),
+                "completed": getattr(status, "completed", None),
+                "total": getattr(status, "total", None),
+            }
+        except ImportError:
+            logging.info("Firecrawl SDK 未安装，改用异步 HTTP。请安装：pip install firecrawl-py")
+        except Exception as e:
+            logging.warning(f"Firecrawl SDK 获取下一页失败，改用异步 HTTP：{e}")
+
+    # 异步 HTTP 回退
     headers = {"Authorization": auth_header} if auth_header else None
     try:
-        resp = requests.get(next_url, headers=headers, timeout=60)
-        resp.raise_for_status()
-        return resp.json()
-    except requests.RequestException as e:
-        logging.error(f"Firecrawl next fetch failed: {e}")
-        return {}
+        try:
+            import httpx  # type: ignore
+        except ImportError:
+            logging.info("httpx 未安装，改用同步 requests 在线程中执行。请安装：pip install httpx")
 
+            def _sync_get_json(url: str, headers: dict | None) -> dict:
+                resp = requests.get(url, headers=headers, timeout=60)
+                resp.raise_for_status()
+                return resp.json()
+
+            return await asyncio.to_thread(_sync_get_json, next_url, headers)
+
+        async with httpx.AsyncClient() as ac:
+            resp = await ac.get(next_url, headers=headers, timeout=60)
+            resp.raise_for_status()
+            return resp.json()
+    except Exception as e:
+        logging.error(f"Firecrawl next failed for {next_url}: {e}")
+        return {}
 
 def get_md_and_links_from_firecrawl_result(result: dict) -> tuple[list[dict], str | None]:
     """Parse Firecrawl v2 crawl batch response.
@@ -773,6 +975,7 @@ def main():
     parser.add_argument("--firecrawl-base", default=os.environ.get("FIRECRAWL_BASE_URL", "http://localhost:3002"), help="Base URL of local Firecrawl service")
     parser.add_argument("--max-pages", type=int, default=0, help="Limit number of pages (0 means unlimited)")
     parser.add_argument("--delay", type=float, default=0.2, help="Delay between requests in seconds")
+    parser.add_argument("--min-delay", type=float, default=float(os.environ.get("FIRECRAWL_MIN_DELAY", 3.0)), help="轮询状态的最小等待秒数（至少等待该值）")
     parser.add_argument("--ollama-base", default=os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434"), help="Base URL of local Ollama service")
     parser.add_argument("--ollama-model", default=os.environ.get("OLLAMA_MODEL", "qwen:3b"), help="Ollama model name for translation (e.g., qwen:3b)")
     parser.add_argument("--output-dir", default=os.environ.get("OUTPUT_DIR", "results"), help="Destination directory to save generated Markdown files")
@@ -785,6 +988,7 @@ def main():
     firecrawl_base = args.firecrawl_base
     max_pages = args.max_pages
     delay = args.delay
+    min_delay = args.min_delay
     ollama_base = args.ollama_base
     ollama_model = args.ollama_model
     output_dir = args.output_dir
@@ -829,10 +1033,14 @@ def main():
             result = call_firecrawl_next(latest_next_url, auth_header)
         else:
             logging.info(f"No next_url in manifest; starting fresh at {start_url}")
-            result = call_firecrawl_start(firecrawl_base, start_url, auth_header)
+            start_info = call_firecrawl_start(firecrawl_base, start_url, auth_header)
+            start_url_status = start_info.get("url") if isinstance(start_info, dict) else None
+            result = call_firecrawl_next(start_url_status, auth_header) if start_url_status else {}
     else:
         logging.info(f"Starting Firecrawl v2 crawl at {start_url} via {firecrawl_base}")
-        result = call_firecrawl_start(firecrawl_base, start_url, auth_header)
+        start_info = call_firecrawl_start(firecrawl_base, start_url, auth_header)
+        start_url_status = start_info.get("url") if isinstance(start_info, dict) else None
+        result = call_firecrawl_next(start_url_status, auth_header) if start_url_status else {}
     while True:
         items, next_url = get_md_and_links_from_firecrawl_result(result)
 
@@ -903,13 +1111,14 @@ def main():
             break
 
         if next_url:
-            logging.info(f"Fetching next batch: {next_url}")
-            time.sleep(delay)
-            result = call_firecrawl_next(next_url, auth_header)
-            if not result:
-                logging.warning("No result returned for next batch; stopping.")
-                break
-            continue
+             logging.info(f"Fetching next batch: {next_url}")
+             effective_delay = max(delay, min_delay)
+             time.sleep(effective_delay)
+             result = call_firecrawl_next(next_url, auth_header)
+             if not result:
+                 logging.warning("No result returned for next batch; stopping.")
+                 break
+             continue
         else:
             logging.info("No next batch; crawl complete.")
             break

@@ -18,6 +18,7 @@
 - `FIRECRAWL_EXTRA_SCRAPE_OPTIONS` 以 JSON 形式提供额外抓取选项，合并到请求的 `scrape_options` 中
 - `FIRECRAWL_MAX_DISCOVERY_DEPTH` 设置发现深度（顶层参数 `maxDiscoveryDepth`）
 - `FIRECRAWL_LIMIT` 设置每批抓取上限（顶层参数 `limit`）
+- `FIRECRAWL_MIN_DELAY` 轮询下一批状态的最小等待秒数（默认 `3.0`）
 
 示例 `.env`（位于仓库根目录）：
 
@@ -31,6 +32,7 @@ FIRECRAWL_LIMIT=100
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=qwen:3b
 OUTPUT_DIR=results
+FIRECRAWL_MIN_DELAY=3.0
 ```
 
 ## 本地默认执行命令
@@ -52,6 +54,7 @@ python crawl_with_firecrawl.py \
   --output-dir "results" \
   --max-pages 0 \
   --delay 0.2 \
+  --min-delay 3.0 \
   --firecrawl-token "<token>"
 ```
 
@@ -68,6 +71,9 @@ python crawl_with_firecrawl.py \
 
 - `--delay`（可选，浮点数，单位秒）
   - 每次请求批次的间隔；默认 `0.2`。
+
+- `--min-delay`（可选，浮点数，单位秒）
+  - 轮询下一批状态的最小等待时间；默认 `3.0`。实际等待为 `max(--delay, --min-delay)`。
 
 - `--ollama-base`（可选）
   - 本地 Ollama 服务基址；默认使用环境变量 `OLLAMA_BASE_URL`，若未设置则使用 `http://localhost:11434`。
