@@ -163,7 +163,8 @@ async def call_firecrawl_next_async(next_url: str, auth_header: str = "", firecr
                     kwargs["api_key"] = api_key
                 kwargs["api_url"] = effective_base
                 client = AsyncFirecrawl(**kwargs)
-                sdk_status = await client.get_crawl_status(crawl_id)
+                sdk_status = client.get_crawl_status(crawl_id)
+                logging.info(f"SDK 状态查询：{sdk_status}")
                 result = {
                     "data": getattr(sdk_status, "data", None),
                     "next": getattr(sdk_status, "next", None),
