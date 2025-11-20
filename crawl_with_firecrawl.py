@@ -967,18 +967,18 @@ async def call_firecrawl_start_async(firecrawl_base: str, start_url: str, auth_h
     try:
         # 在异步函数中使用 httpx
         try:
-        except ImportError:
+            async with httpx.AsyncClient() as ac:
+                resp = await ac.post(endpoint, json=payload, headers=headers, timeout=60)
+                resp.raise_for_status()
+                data = resp.json()
+        except Exception as e:
+            logging.warning(f"Firecrawl httpx 调用失败，回退到同步请求：{e}")
             # 若无 httpx，则在线程中运行同步请求
             def _sync_post():
                 resp = requests.post(endpoint, json=payload, headers=headers, timeout=60)
                 resp.raise_for_status()
                 return resp.json()
             data = await asyncio.to_thread(_sync_post)
-        else:
-            async with httpx.AsyncClient() as ac:
-                resp = await ac.post(endpoint, json=payload, headers=headers, timeout=60)
-                resp.raise_for_status()
-                data = resp.json()
 
         if isinstance(data, dict):
             cid = data.get("id")
