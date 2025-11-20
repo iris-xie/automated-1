@@ -7,8 +7,8 @@ import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
+from firecrawl import AsyncFirecrawl,Firecrawl  # type: ignore
 
-import httpx  # type: ignore
 import requests
 
 # 全局计数：本次运行已写入的 Markdown 文件数量
@@ -37,9 +37,9 @@ async def call_firecrawl_start_async(
     scrape_options = scrape_options or {"formats": ["markdown", "html"]}
     api_key_env = os.environ.get("FIRECRAWL_API_KEY", "")
     try:
-        from firecrawl import AsyncFirecrawl  # type: ignore
+        from firecrawl import Firecrawl  # type: ignore
     except Exception:
-        AsyncFirecrawl = None  # type: ignore
+        Firecrawl = None  # type: ignore
 
     try:
         api_key = None
@@ -55,29 +55,34 @@ async def call_firecrawl_start_async(
         if firecrawl_base:
             firecrawl_kwargs["api_url"] = firecrawl_base.rstrip("/")
 
-        if AsyncFirecrawl is None:
-            raise RuntimeError("AsyncFirecrawl SDK not available")
+        if Firecrawl is None:
+            raise RuntimeError("Firecrawl SDK not available")
 
-        client = AsyncFirecrawl(**firecrawl_kwargs)
-        started = await client.start_crawl(
-            url=start_url,
-            limit=limit,
-            scrape_options=scrape_options,
-            max_concurrency=max_concurrency,
-            sitemap=sitemap_strategy,
-            max_discovery_depth=max_discovery_depth,
-            crawl_entire_domain=crawl_entire_domain,
-        )
-        start_status_url = f"{firecrawl_base.rstrip('/')}/v2/crawl/{getattr(started, 'id', '')}"
+        client = Firecrawl(**firecrawl_kwargs)
+
+        def _sdk_start():
+            return client.start_crawl(
+                url=start_url,
+                limit=limit,
+                scrape_options=scrape_options,
+                max_concurrency=max_concurrency,
+                sitemap=sitemap_strategy,
+                max_discovery_depth=max_discovery_depth,
+                crawl_entire_domain=crawl_entire_domain,
+            )
+
+        started = await asyncio.to_thread(_sdk_start)
+        started_id = started.get("id") if isinstance(started, dict) else getattr(started, "id", None)
+        start_status_url = f"{firecrawl_base.rstrip('/')}/v2/crawl/{started_id or ''}"
         return {
-            "success": True if getattr(started, "id", None) else False,
-            "id": getattr(started, "id", None),
+            "success": True if started_id else False,
+            "id": started_id,
             "url": start_status_url,
         }
     except Exception as e:
         logging.warning(f"Firecrawl 异步 SDK 调用失败，回退到 HTTP API：{e}")
 
-    # 回退：直接调用 HTTP API 的 /v2/crawl
+    # 回退：直接调用 HTTP API 的 /v2/crawl（统一使用 requests 在线程中执行）
     endpoint = firecrawl_base.rstrip("/") + "/v2/crawl"
     payload = {
         "url": start_url,
@@ -90,21 +95,12 @@ async def call_firecrawl_start_async(
     }
     headers = {"Authorization": auth_header} if auth_header else None
     try:
-        # 在异步函数中使用 httpx
-        try:
-            async with httpx.AsyncClient() as ac:
-                resp = await ac.post(endpoint, json=payload, headers=headers, timeout=60)
-                resp.raise_for_status()
-                data = resp.json()
-        except Exception as e:
-            logging.warning(f"Firecrawl httpx 调用失败，回退到同步请求：{e}")
-            # 若无 httpx，则在线程中运行同步请求
-            def _sync_post():
-                resp = requests.post(endpoint, json=payload, headers=headers, timeout=60)
-                resp.raise_for_status()
-                return resp.json()
-            data = await asyncio.to_thread(_sync_post)
-
+        def _sync_post():
+            resp = requests.post(endpoint, json=payload, headers=headers, timeout=60)
+            resp.raise_for_status()
+            return resp.json()
+        data = await asyncio.to_thread(_sync_post)
+    
         if isinstance(data, dict):
             cid = data.get("id")
             if cid and not data.get("url"):
@@ -157,13 +153,15 @@ async def call_firecrawl_next_async(next_url: str, auth_header: str = "", firecr
         # 优先 SDK（有 crawl_id 时，使用有效后端地址）
         if crawl_id:
             try:
-                from firecrawl import AsyncFirecrawl  # type: ignore
+                from firecrawl import Firecrawl  # type: ignore
                 kwargs = {}
                 if api_key:
                     kwargs["api_key"] = api_key
                 kwargs["api_url"] = effective_base
-                client = AsyncFirecrawl(**kwargs)
-                sdk_status = client.get_crawl_status(crawl_id)
+                client = Firecrawl(**kwargs)
+                def _sdk_status():
+                    return client.get_crawl_status(crawl_id)
+                sdk_status = await asyncio.to_thread(_sdk_status)
                 logging.info(f"SDK 状态查询：{sdk_status}")
                 result = {
                     "data": getattr(sdk_status, "data", None),
@@ -177,19 +175,13 @@ async def call_firecrawl_next_async(next_url: str, auth_header: str = "", firecr
 
         if result is None:
             try:
-                async with httpx.AsyncClient() as ac:
-                    resp = await ac.get(next_url, headers=headers, timeout=60)
-                    resp.raise_for_status()
-                    result = resp.json()
-            except Exception as e:
-                logging.warning(f"httpx 状态查询失败，回退到同步请求：{e}")
-
                 def _sync_get():
                     r = requests.get(next_url, headers=headers, timeout=60)
                     r.raise_for_status()
                     return r.json()
-
                 result = await asyncio.to_thread(_sync_get)
+            except Exception as e:
+                logging.warning(f"同步请求状态查询失败：{e}")
 
         total = (result or {}).get("total", 0) or 0
         completed = (result or {}).get("completed", 0) or 0
