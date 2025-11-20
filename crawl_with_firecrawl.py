@@ -41,6 +41,8 @@ import html2text  # type: ignore
 import requests
 from firecrawl import AsyncFirecrawl  # type: igno
 import httpx
+import html as html_module
+from ollama import Client  # type: ignore
 
 def setup_logger():
     """Configure logging to write to ./logs/crawl.log and console.
@@ -361,7 +363,6 @@ def html_to_markdown(html: str) -> str:
         return ""
     # Try html2text
     try:
-        import html2text  # type: ignore
         h = html2text.HTML2Text()
         h.ignore_links = False  # always keep links
         h.ignore_images = False
@@ -373,7 +374,6 @@ def html_to_markdown(html: str) -> str:
         pass
     # Try markdownify
     try:
-        from markdownify import markdownify as md  # type: ignore
         md_text = md(html, heading_style="ATX")
         return convert_images_to_reference(md_text)
     except Exception:
@@ -410,7 +410,6 @@ def html_to_markdown(html: str) -> str:
     working = re.sub(r"(?is)</p\\s*>", "\n\n", working)
     # strip remaining tags
     working = re.sub(r"(?is)<[^>]+>", "", working)
-    import html as html_module
     md_text = html_module.unescape(working).strip()
     if img_refs:
         md_text = md_text.rstrip() + "\n\n"
@@ -421,13 +420,42 @@ def html_to_markdown(html: str) -> str:
                 md_text += f"[{ref_id}]: {src}\n"
     return md_text
 
-def translate_to_english_with_ollama(ollama_base: str, model: str, text: str) -> str:
+def translate_to_english_with_ollama(ollama_base: str, model: str, text: str, wait: float = 0.0) -> str:
     """Translate Markdown text to English using a local Ollama model.
     Preserves Markdown structure, link URLs, and reference-style image identifiers.
     Returns translated text, or original on failure.
     """
     if not text or not text.strip():
         return text
+    # 可选等待，避免频繁调用或模型加载抖动
+    if wait and wait > 0:
+        try:
+            time.sleep(wait)
+        except Exception:
+            pass
+    # 优先使用官方 Ollama Python 库
+    try:
+        client = Client(host=ollama_base)
+        resp = client.generate(
+            model=model,
+            prompt=(
+                "You are a professional translator. Translate the following Markdown to English only. "
+                "Preserve Markdown formatting, keep link URLs unchanged, and DO NOT alter reference identifiers like [img-1]. "
+                "Do not include any Chinese characters in the output. Output ONLY the translated English Markdown without extra commentary.\n\n"
+                + text
+            ),
+            stream=False,
+            options={"temperature": 0.25, "num_ctx": 512},
+        )
+        translated = resp.get("response") if isinstance(resp, dict) else None
+        if isinstance(translated, str) and translated.strip():
+            translated = re.sub(r"[\u3400-\u4DBF\u4E00-\u9FFF]", "", translated)
+            return translated
+    except ImportError:
+        # 回退到 HTTP API
+        pass
+    except Exception as e:
+        logging.error(f"Ollama translation (client) failed: {e}")
     endpoint = ollama_base.rstrip("/") + "/api/generate"
     prompt = (
         "You are a professional translator. Translate the following Markdown to English only. "
@@ -458,7 +486,7 @@ def translate_to_english_with_ollama(ollama_base: str, model: str, text: str) ->
     return text
 
 
-def extract_categories_and_tags_with_ollama(ollama_base: str, model: str, title: str, body: str) -> tuple[list[str], list[str]]:
+def extract_categories_and_tags_with_ollama(ollama_base: str, model: str, title: str, body: str, wait: float = 0.0) -> tuple[list[str], list[str]]:
     """Use local Ollama to extract English categories and tags from title/body.
     Expects the model to return a JSON object: {"categories": [...], "tags": [...]}.
     Returns (categories, tags). Falls back to simple heuristics on failure.
@@ -468,6 +496,52 @@ def extract_categories_and_tags_with_ollama(ollama_base: str, model: str, title:
     if not (title or body):
         return categories, tags
 
+    # 可选等待
+    if wait and wait > 0:
+        try:
+            time.sleep(wait)
+        except Exception:
+            pass
+    # 优先使用官方 Ollama Python 库
+    try:
+        client = Client(host=ollama_base)
+        resp = client.generate(
+            model=model,
+            prompt=(
+                "You are a taxonomy assistant. Based on the following English Markdown title and body, "
+                "derive 1-3 broad categories and 4-8 concise tags. "
+                "Respond ONLY with a compact JSON object using keys 'categories' and 'tags'. "
+                "Ensure all outputs are English and contain no Chinese characters.\n\n"
+                f"Title: {title}\n\n"
+                f"Body:\n{body}\n"
+            ),
+            stream=False,
+            options={"temperature": 0.25, "num_ctx": 512},
+        )
+        raw = resp.get("response") if isinstance(resp, dict) else None
+        if isinstance(raw, str):
+            m = re.search(r"\{[\s\S]*\}", raw)
+            text = m.group(0) if m else raw
+            try:
+                obj = json.loads(text)
+                cats = obj.get("categories")
+                tgs = obj.get("tags")
+                categories: list[str] = []
+                tags: list[str] = []
+                if isinstance(cats, list):
+                    categories = [str(x).strip() for x in cats if str(x).strip()]
+                if isinstance(tgs, list):
+                    tags = [str(x).strip() for x in tgs if str(x).strip()]
+                # Enforce English-only by stripping CJK characters
+                categories = [re.sub(r"[\u3400-\u4DBF\u4E00-\u9FFF]", "", c) for c in categories]
+                tags = [re.sub(r"[\u3400-\u4DBF\u4E00-\u9FFF]", "", t) for t in tags]
+                return categories, tags
+            except Exception:
+                pass
+    except ImportError:
+        pass
+    except Exception as e:
+        logging.error(f"Ollama taxonomy extraction (client) failed: {e}")
     endpoint = ollama_base.rstrip("/") + "/api/generate"
     prompt = (
         "You are a taxonomy assistant. Based on the following English Markdown title and body, "
@@ -523,12 +597,67 @@ def extract_categories_and_tags_with_ollama(ollama_base: str, model: str, title:
     tags = [re.sub(r"[\u3400-\u4DBF\u4E00-\u9FFF]", "", t) for t in tags]
 
 
-def extract_keywords_with_ollama(ollama_base: str, model: str, title: str, body: str, max_keywords: int = 70) -> list[str]:
+def extract_keywords_with_ollama(ollama_base: str, model: str, title: str, body: str, max_keywords: int = 70, wait: float = 0.0) -> list[str]:
     """Use local Ollama to extract up to max_keywords English SEO keywords.
     Returns a list of unique, cleaned English keywords.
     """
     if max_keywords <= 0:
         max_keywords = 70
+    # 可选等待
+    if wait and wait > 0:
+        try:
+            time.sleep(wait)
+        except Exception:
+            pass
+    # 优先使用官方 Ollama Python 库
+    try:
+        client = Client(host=ollama_base)
+        resp = client.generate(
+            model=model,
+            prompt=(
+                "You are an SEO assistant. From the following English Markdown title and body, "
+                f"extract up to {max_keywords} concise English keywords for SEO. "
+                "Return ONLY a compact JSON array of strings, no explanations. "
+                "Keywords must be English words or phrases, deduplicated, no punctuation except hyphen. "
+                "Do not include Chinese characters.\n\n"
+                f"Title: {title}\n\n"
+                f"Body:\n{body}\n"
+            ),
+            stream=False,
+            options={"temperature": 0.25, "num_ctx": 512},
+        )
+        raw = resp.get("response") if isinstance(resp, dict) else None
+        keywords: list[str] = []
+        if isinstance(raw, str):
+            m = re.search(r"\[[\s\S]*\]", raw)
+            text = m.group(0) if m else raw
+            try:
+                arr = json.loads(text)
+                if isinstance(arr, list):
+                    keywords = [str(x).strip() for x in arr if str(x).strip()]
+            except Exception:
+                pass
+        if keywords:
+            cleaned: list[str] = []
+            for kw in keywords:
+                s = re.sub(r"[\u3400-\u4DBF\u4E00-\u9FFF]", "", kw)
+                s = re.sub(r"[^A-Za-z0-9\-\s]", " ", s)
+                s = re.sub(r"\s+", " ", s).strip()
+                if s:
+                    cleaned.append(s.lower())
+            final: list[str] = []
+            seen2 = set()
+            for s in cleaned:
+                if s not in seen2:
+                    seen2.add(s)
+                    final.append(s)
+                if len(final) >= max_keywords:
+                    break
+            return final
+    except ImportError:
+        pass
+    except Exception as e:
+        logging.error(f"Ollama keyword extraction (client) failed: {e}")
     endpoint = ollama_base.rstrip("/") + "/api/generate"
     prompt = (
         "You are an SEO assistant. From the following English Markdown title and body, "
@@ -632,12 +761,42 @@ def _closest_option_local(term: str, options: list[str]) -> str:
     return best
 
 
-def choose_closest_with_ollama(ollama_base: str, model: str, term: str, options: list[str], label: str) -> str:
+def choose_closest_with_ollama(ollama_base: str, model: str, term: str, options: list[str], label: str, wait: float = 0.0) -> str:
     """Ask Ollama to choose the closest option for the term among options.
     Falls back to local similarity if the call fails.
     """
     if not options:
         return term
+    # 可选等待
+    if wait and wait > 0:
+        try:
+            time.sleep(wait)
+        except Exception:
+            pass
+    # 优先使用官方 Ollama Python 库
+    try:
+        client = Client(host=ollama_base)
+        resp = client.generate(
+            model=model,
+            prompt=(
+                f"You are a taxonomy assistant. Choose the single closest {label} from the provided options for the term.\n"
+                f"Term: {term}\n"
+                f"Options (one per line):\n" + "\n".join(options) + "\n\n"
+                "Respond with ONLY the chosen option text, no extra words."
+            ),
+            stream=False,
+            options={"temperature": 0.25, "num_ctx": 512},
+        )
+        choice = resp.get("response") if isinstance(resp, dict) else None
+        if isinstance(choice, str):
+            choice = choice.strip()
+            for opt in options:
+                if choice.lower() == opt.lower():
+                    return opt
+    except ImportError:
+        pass
+    except Exception as e:
+        logging.error(f"Ollama closest-choice (client) failed: {e}")
     endpoint = ollama_base.rstrip("/") + "/api/generate"
     prompt = (
         f"You are a taxonomy assistant. Choose the single closest {label} from the provided options for the term.\n"
@@ -662,7 +821,7 @@ def choose_closest_with_ollama(ollama_base: str, model: str, term: str, options:
     return _closest_option_local(term, options)
 
 
-def reconcile_terms(proposed: list[str], pool: list[str], max_size: int, ollama_base: str, ollama_model: str, for_category: bool) -> list[str]:
+def reconcile_terms(proposed: list[str], pool: list[str], max_size: int, ollama_base: str, ollama_model: str, for_category: bool, ollama_wait: float = 0.0) -> list[str]:
     """Reconcile proposed terms with a global pool under a size cap.
     - Normalize terms
     - If pool size < cap and term not present, add to pool
@@ -686,7 +845,7 @@ def reconcile_terms(proposed: list[str], pool: list[str], max_size: int, ollama_
             pool.append(norm)
             selected.append(norm)
         else:
-            choice = choose_closest_with_ollama(ollama_base, ollama_model, norm, pool, "category" if for_category else "tag")
+            choice = choose_closest_with_ollama(ollama_base, ollama_model, norm, pool, "category" if for_category else "tag", wait=ollama_wait)
             selected.append(choice)
     return selected
 
@@ -751,7 +910,6 @@ async def call_firecrawl_start_async(firecrawl_base: str, start_url: str, auth_h
 
     # 尝试使用官方异步 SDK
     try:
-        from firecrawl import AsyncFirecrawl  # type: ignore
         # 从 Authorization 头或环境变量解析 API Key
         api_key_env = os.environ.get("FIRECRAWL_API_KEY")
         api_key = None
@@ -810,7 +968,6 @@ async def call_firecrawl_start_async(firecrawl_base: str, start_url: str, auth_h
     try:
         # 在异步函数中使用 httpx
         try:
-            import httpx
         except ImportError:
             # 若无 httpx，则在线程中运行同步请求
             def _sync_post():
@@ -883,7 +1040,6 @@ async def call_firecrawl_next_async(next_url: str, auth_header: str = "") -> dic
         # 优先 SDK（解析到 crawl_id 与 api_url 时）
         if crawl_id and api_url:
             try:
-                from firecrawl import Firecrawl, PaginationConfig  # type: ignore
                 kwargs = {}
                 if api_key:
                     kwargs["api_key"] = api_key
@@ -902,8 +1058,6 @@ async def call_firecrawl_next_async(next_url: str, auth_header: str = "") -> dic
                     "completed": getattr(status, "completed", None),
                     "total": getattr(status, "total", None),
                 }
-            except ImportError:
-                logging.info("Firecrawl SDK 未安装，改用异步 HTTP。请安装：pip install firecrawl-py")
             except Exception as e:
                 logging.warning(f"Firecrawl SDK 获取下一页失败，改用异步 HTTP：{e}")
 
@@ -911,7 +1065,6 @@ async def call_firecrawl_next_async(next_url: str, auth_header: str = "") -> dic
         if result is None:
             try:
                 try:
-                    import httpx  # type: ignore
                     async with httpx.AsyncClient() as ac:
                         resp = await ac.get(next_url, headers=headers, timeout=60)
                         resp.raise_for_status()
@@ -1012,6 +1165,7 @@ def main():
     parser.add_argument("--min-delay", type=float, default=float(os.environ.get("FIRECRAWL_MIN_DELAY", 3.0)), help="轮询状态的最小等待秒数（至少等待该值）")
     parser.add_argument("--ollama-base", default=os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434"), help="Base URL of local Ollama service")
     parser.add_argument("--ollama-model", default=os.environ.get("OLLAMA_MODEL", "qwen:3b"), help="Ollama model name for translation (e.g., qwen:3b)")
+    parser.add_argument("--ollama-wait", type=float, default=float(os.environ.get("OLLAMA_WAIT", 10.0)), help="Ollama 调用前等待秒数（默认 10 秒）")
     parser.add_argument("--output-dir", default=os.environ.get("OUTPUT_DIR", "results"), help="Destination directory to save generated Markdown files")
     parser.add_argument("--firecrawl-token", default=os.environ.get("FIRECRAWL_TOKEN", ""), help="Firecrawl 访问令牌（仅输入 token，程序会自动拼接 'Bearer '）")
     parser.add_argument("--firecrawl-auth", default=os.environ.get("FIRECRAWL_AUTH", ""), help="兼容参数：若未以 'Bearer ' 开头，将自动拼接")
@@ -1025,6 +1179,7 @@ def main():
     min_delay = args.min_delay
     ollama_base = args.ollama_base
     ollama_model = args.ollama_model
+    ollama_wait = args.ollama_wait
     output_dir = args.output_dir
     firecrawl_token = args.firecrawl_token
     firecrawl_auth = args.firecrawl_auth
@@ -1090,16 +1245,16 @@ def main():
             body = item.get("body", "")
 
             # Translate title and body to English using local Ollama
-            title_en = translate_to_english_with_ollama(ollama_base, ollama_model, title) if title else title
-            description_en = translate_to_english_with_ollama(ollama_base, ollama_model, description_raw) if description_raw else ""
+    title_en = translate_to_english_with_ollama(ollama_base, ollama_model, title, wait=ollama_wait) if title else title
+    description_en = translate_to_english_with_ollama(ollama_base, ollama_model, description_raw, wait=ollama_wait) if description_raw else ""
             summary_en = description_en
-            body_en = translate_to_english_with_ollama(ollama_base, ollama_model, body) if body else body
-            categories, tags = extract_categories_and_tags_with_ollama(ollama_base, ollama_model, title_en or "", body_en or "")
+    body_en = translate_to_english_with_ollama(ollama_base, ollama_model, body, wait=ollama_wait) if body else body
+    categories, tags = extract_categories_and_tags_with_ollama(ollama_base, ollama_model, title_en or "", body_en or "", wait=ollama_wait)
             # Reconcile with global pools under caps (70 categories, 300 tags)
-            categories_final = reconcile_terms(categories, global_categories_pool, 70, ollama_base, ollama_model, True)
-            tags_final = reconcile_terms(tags, global_tags_pool, 300, ollama_base, ollama_model, False)
+    categories_final = reconcile_terms(categories, global_categories_pool, 70, ollama_base, ollama_model, True, ollama_wait=ollama_wait)
+    tags_final = reconcile_terms(tags, global_tags_pool, 300, ollama_base, ollama_model, False, ollama_wait=ollama_wait)
             # Extract up to 70 English SEO keywords
-            keywords = extract_keywords_with_ollama(ollama_base, ollama_model, title_en or "", body_en or "", 70)
+    keywords = extract_keywords_with_ollama(ollama_base, ollama_model, title_en or "", body_en or "", 70, wait=ollama_wait)
 
             dir_path, filename = path_to_file_parts(source, output_dir)
             url_field = make_unique_url_from_title(title_en, used_urls, 30)

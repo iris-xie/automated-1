@@ -12,6 +12,7 @@
 - `FIRECRAWL_BASE_URL` 覆盖 Firecrawl 基址
 - `OLLAMA_BASE_URL` 覆盖 Ollama 基址
 - `OLLAMA_MODEL` 覆盖模型名称
+- `OLLAMA_WAIT` 设置调用 Ollama 前的等待秒数（默认 `10`）
 - `OUTPUT_DIR` 覆盖输出目录（默认 `results`）
 - `FIRECRAWL_TOKEN` 设置 Firecrawl 访问令牌（自动拼接为 `Authorization: Bearer <token>`）
 - `FIRECRAWL_AUTH` 兼容旧授权变量（若不以 `Bearer ` 开头会自动拼接）
@@ -31,6 +32,7 @@ FIRECRAWL_MAX_DISCOVERY_DEPTH=1
 FIRECRAWL_LIMIT=100
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=qwen:3b
+OLLAMA_WAIT=10
 OUTPUT_DIR=results
 FIRECRAWL_MIN_DELAY=3.0
 ```
@@ -51,6 +53,7 @@ python crawl_with_firecrawl.py \
   --firecrawl-base "http://localhost:3002" \
   --ollama-base "http://localhost:11434" \
   --ollama-model "qwen:3b" \
+  --ollama-wait 10 \
   --output-dir "results" \
   --max-pages 0 \
   --delay 0.2 \
