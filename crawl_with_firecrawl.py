@@ -42,7 +42,7 @@ import httpx  # type: ignore
 import html2text  # type: ignore
 import requests
 from markdownify import markdownify as md  # type: ignore
-from firecrawl import AsyncFirecrawl  # type: ignore
+from firecrawl import AsyncFirecrawl,PaginationConfig  # type: ignore
 from ollama import Client  # type: ignore
 
 def setup_logger():
