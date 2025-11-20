@@ -1043,10 +1043,9 @@ async def call_firecrawl_next_async(next_url: str, auth_header: str = "") -> dic
                 if api_key:
                     kwargs["api_key"] = api_key
                 kwargs["api_url"] = api_url
-                client = Firecrawl(**kwargs)
+                client = AsyncFirecrawl(**kwargs)
 
-                status = await asyncio.to_thread(
-                    client.get_crawl_status,
+                status = await client.get_crawl_status(
                     crawl_id,
                     pagination_config=PaginationConfig(auto_paginate=False),
                 )
