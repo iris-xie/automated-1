@@ -157,14 +157,13 @@ async def call_firecrawl_next_async(next_url: str, auth_header: str = "", firecr
         # 优先 SDK（有 crawl_id 时，使用有效后端地址）
         if crawl_id:
             try:
-                from firecrawl import AsyncFirecrawl, PaginationConfig  # type: ignore
+                from firecrawl import AsyncFirecrawl  # type: ignore
                 kwargs = {}
                 if api_key:
                     kwargs["api_key"] = api_key
                 kwargs["api_url"] = effective_base
                 client = AsyncFirecrawl(**kwargs)
-                pagination = PaginationConfig(id=crawl_id)
-                sdk_status = await client.get_crawl_status(pagination)
+                sdk_status = await client.get_crawl_status(crawl_id)
                 result = {
                     "data": getattr(sdk_status, "data", None),
                     "next": getattr(sdk_status, "next", None),
@@ -321,7 +320,7 @@ async def main() -> None:
         # 继续轮询直到完成条件满足（在 call_firecrawl_next_async 内部处理）
         total = status.get("total", 0)
         completed = status.get("completed", 0)
-        if (total == 1 and completed == 1) or (total > 1 and completed > 1):
+        if total > 1 and completed == total:
             logging.info("抓取任务已达到停止条件，结束。")
             break
         time.sleep(max(float(os.environ.get("FIRECRAWL_MIN_DELAY", 3.0)), 3.0))

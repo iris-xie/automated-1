@@ -42,7 +42,7 @@ import httpx  # type: ignore
 import html2text  # type: ignore
 import requests
 from markdownify import markdownify as md  # type: ignore
-from firecrawl import AsyncFirecrawl,PaginationConfig  # type: ignore
+from firecrawl import AsyncFirecrawl  # type: ignore
 from ollama import Client  # type: ignore
 
 def setup_logger():
@@ -1054,10 +1054,7 @@ async def call_firecrawl_next_async(next_url: str, auth_header: str = "", firecr
                 kwargs["api_url"] = effective_base
                 client = AsyncFirecrawl(**kwargs)
 
-                status = await client.get_crawl_status(
-                    crawl_id,
-                    pagination_config=PaginationConfig(auto_paginate=False),
-                )
+                status = await client.get_crawl_status(crawl_id)
                 result = {
                     "data": getattr(status, "data", []) or [],
                     "next": getattr(status, "next", None),
