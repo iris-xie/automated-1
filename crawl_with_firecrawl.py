@@ -1245,16 +1245,16 @@ def main():
             body = item.get("body", "")
 
             # Translate title and body to English using local Ollama
-    title_en = translate_to_english_with_ollama(ollama_base, ollama_model, title, wait=ollama_wait) if title else title
-    description_en = translate_to_english_with_ollama(ollama_base, ollama_model, description_raw, wait=ollama_wait) if description_raw else ""
+            title_en = translate_to_english_with_ollama(ollama_base, ollama_model, title, wait=ollama_wait) if title else title
+            description_en = translate_to_english_with_ollama(ollama_base, ollama_model, description_raw, wait=ollama_wait) if description_raw else ""
             summary_en = description_en
-    body_en = translate_to_english_with_ollama(ollama_base, ollama_model, body, wait=ollama_wait) if body else body
-    categories, tags = extract_categories_and_tags_with_ollama(ollama_base, ollama_model, title_en or "", body_en or "", wait=ollama_wait)
+            body_en = translate_to_english_with_ollama(ollama_base, ollama_model, body, wait=ollama_wait) if body else body
+            categories, tags = extract_categories_and_tags_with_ollama(ollama_base, ollama_model, title_en or "", body_en or "", wait=ollama_wait)
             # Reconcile with global pools under caps (70 categories, 300 tags)
-    categories_final = reconcile_terms(categories, global_categories_pool, 70, ollama_base, ollama_model, True, ollama_wait=ollama_wait)
-    tags_final = reconcile_terms(tags, global_tags_pool, 300, ollama_base, ollama_model, False, ollama_wait=ollama_wait)
+            categories_final = reconcile_terms(categories, global_categories_pool, 70, ollama_base, ollama_model, True, ollama_wait=ollama_wait)
+            tags_final = reconcile_terms(tags, global_tags_pool, 300, ollama_base, ollama_model, False, ollama_wait=ollama_wait)
             # Extract up to 70 English SEO keywords
-    keywords = extract_keywords_with_ollama(ollama_base, ollama_model, title_en or "", body_en or "", 70, wait=ollama_wait)
+            keywords = extract_keywords_with_ollama(ollama_base, ollama_model, title_en or "", body_en or "", 70, wait=ollama_wait)
 
             dir_path, filename = path_to_file_parts(source, output_dir)
             url_field = make_unique_url_from_title(title_en, used_urls, 30)
