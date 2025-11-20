@@ -25,23 +25,24 @@ Notes:
 """
 
 import argparse
+import asyncio
+import html as html_module
+import json
+import logging
 import os
 import re
 import sys
 import time
-import json
-import logging
-import asyncio
-from urllib.parse import urlparse, urljoin, urldefrag
-from difflib import SequenceMatcher
 from collections import deque
 from datetime import datetime, timedelta
-from markdownify import markdownify as md  # type: ignore
+from difflib import SequenceMatcher
+from urllib.parse import urljoin, urldefrag, urlparse
+
+import httpx  # type: ignore
 import html2text  # type: ignore
 import requests
-from firecrawl import AsyncFirecrawl  # type: igno
-import httpx
-import html as html_module
+from markdownify import markdownify as md  # type: ignore
+from firecrawl import AsyncFirecrawl  # type: ignore
 from ollama import Client  # type: ignore
 
 def setup_logger():
