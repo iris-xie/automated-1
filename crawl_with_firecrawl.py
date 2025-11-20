@@ -949,8 +949,6 @@ async def call_firecrawl_start_async(firecrawl_base: str, start_url: str, auth_h
             "id": getattr(started, "id", None),
             "url": start_status_url,
         }
-    except ImportError:
-        logging.info("Firecrawl SDK 未安装，回退到直接调用 HTTP API。请安装：pip install firecrawl-py")
     except Exception as e:
         logging.warning(f"Firecrawl 异步 SDK 调用失败，回退到 HTTP API：{e}")
 
