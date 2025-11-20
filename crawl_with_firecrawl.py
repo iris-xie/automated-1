@@ -990,17 +990,17 @@ async def call_firecrawl_start_async(firecrawl_base: str, start_url: str, auth_h
         return {"success": False, "id": None, "url": None}
 
 
-def call_firecrawl_next(next_url: str, auth_header: str = "") -> dict:
-    """同步包装：委托到异步的状态查询。"""
+def call_firecrawl_next(next_url: str, auth_header: str = "", firecrawl_base: str | None = None) -> dict:
+    """同步包装：委托到异步的状态查询，并允许指定 AsyncFirecrawl 的后端 endpoint。"""
     try:
-        return asyncio.run(call_firecrawl_next_async(next_url, auth_header))
+        return asyncio.run(call_firecrawl_next_async(next_url, auth_header, firecrawl_base))
     except RuntimeError:
         # 若已有运行中的事件循环（例如在某些环境），改用 to_thread 包装同步回退
         loop = asyncio.get_event_loop()
-        return loop.run_until_complete(call_firecrawl_next_async(next_url, auth_header))
+        return loop.run_until_complete(call_firecrawl_next_async(next_url, auth_header, firecrawl_base))
 
 
-async def call_firecrawl_next_async(next_url: str, auth_header: str = "") -> dict:
+async def call_firecrawl_next_async(next_url: str, auth_header: str = "", firecrawl_base: str | None = None) -> dict:
     """异步获取下一页数据：优先使用 SDK（在线程中执行），否则使用 httpx 异步请求。
 
     返回结构保持为包含 data 与 next 的字典。
@@ -1011,11 +1011,11 @@ async def call_firecrawl_next_async(next_url: str, auth_header: str = "") -> dic
     api_key = None
     try:
         parsed = urlparse(next_url)
-        api_url = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else None
+        parsed_base = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else None
         m = re.search(r"/v2/crawl/([a-zA-Z0-9\-]+)", next_url)
         crawl_id = m.group(1) if m else None
     except Exception:
-        api_url = None
+        parsed_base = None
         crawl_id = None
 
     # 从 Authorization 或环境变量读取 API Key
@@ -1036,13 +1036,22 @@ async def call_firecrawl_next_async(next_url: str, auth_header: str = "") -> dic
     while True:
         result: dict | None = None
 
-        # 优先 SDK（解析到 crawl_id 与 api_url 时）
-        if crawl_id and api_url:
+        # 选择 AsyncFirecrawl 的后端 endpoint：优先使用传入的 firecrawl_base，其次解析自 next_url，最后使用环境变量
+        effective_base = None
+        if firecrawl_base:
+            effective_base = firecrawl_base.rstrip("/")
+        elif parsed_base:
+            effective_base = parsed_base.rstrip("/")
+        else:
+            effective_base = (os.environ.get("FIRECRAWL_BASE_URL") or "http://localhost:3002").rstrip("/")
+
+        # 优先 SDK（解析到 crawl_id 时）
+        if crawl_id and effective_base:
             try:
                 kwargs = {}
                 if api_key:
                     kwargs["api_key"] = api_key
-                kwargs["api_url"] = api_url
+                kwargs["api_url"] = effective_base
                 client = AsyncFirecrawl(**kwargs)
 
                 status = await client.get_crawl_status(
@@ -1162,7 +1171,7 @@ def main():
     parser.add_argument("--delay", type=float, default=0.2, help="Delay between requests in seconds")
     parser.add_argument("--min-delay", type=float, default=float(os.environ.get("FIRECRAWL_MIN_DELAY", 3.0)), help="轮询状态的最小等待秒数（至少等待该值）")
     parser.add_argument("--ollama-base", default=os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434"), help="Base URL of local Ollama service")
-    parser.add_argument("--ollama-model", default=os.environ.get("OLLAMA_MODEL", "qwen:3b"), help="Ollama model name for translation (e.g., qwen:3b)")
+    parser.add_argument("--ollama-model", default=os.environ.get("OLLAMA_MODEL", "qwen3:4b"), help="Ollama model name for translation (e.g., qwen:3b)")
     parser.add_argument("--ollama-wait", type=float, default=float(os.environ.get("OLLAMA_WAIT", 10.0)), help="Ollama 调用前等待秒数（默认 10 秒）")
     parser.add_argument("--output-dir", default=os.environ.get("OUTPUT_DIR", "results"), help="Destination directory to save generated Markdown files")
     parser.add_argument("--firecrawl-token", default=os.environ.get("FIRECRAWL_TOKEN", ""), help="Firecrawl 访问令牌（仅输入 token，程序会自动拼接 'Bearer '）")
@@ -1217,17 +1226,17 @@ def main():
             written_files.append(abs_p)
         if latest_next_url:
             logging.info("Resuming crawl from manifest next_url")
-            result = call_firecrawl_next(latest_next_url, auth_header)
+            result = call_firecrawl_next(latest_next_url, auth_header, firecrawl_base)
         else:
             logging.info(f"No next_url in manifest; starting fresh at {start_url}")
             start_info = call_firecrawl_start(firecrawl_base, start_url, auth_header)
             start_url_status = start_info.get("url") if isinstance(start_info, dict) else None
-            result = call_firecrawl_next(start_url_status, auth_header) if start_url_status else {}
+            result = call_firecrawl_next(start_url_status, auth_header, firecrawl_base) if start_url_status else {}
     else:
         logging.info(f"Starting Firecrawl v2 crawl at {start_url} via {firecrawl_base}")
         start_info = call_firecrawl_start(firecrawl_base, start_url, auth_header)
         start_url_status = start_info.get("url") if isinstance(start_info, dict) else None
-        result = call_firecrawl_next(start_url_status, auth_header) if start_url_status else {}
+        result = call_firecrawl_next(start_url_status, auth_header, firecrawl_base) if start_url_status else {}
         logging.info(f"Firecrawl result: {result}")
     while True:
         items, next_url = get_md_and_links_from_firecrawl_result(result)
@@ -1302,7 +1311,7 @@ def main():
              logging.info(f"Fetching next batch: {next_url}")
              effective_delay = max(delay, min_delay)
              time.sleep(effective_delay)
-             result = call_firecrawl_next(next_url, auth_header)
+             result = call_firecrawl_next(next_url, auth_header, firecrawl_base)
              if not result:
                  logging.warning("No result returned for next batch; stopping.")
                  break

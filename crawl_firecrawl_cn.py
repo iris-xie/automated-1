@@ -77,6 +77,7 @@ async def call_firecrawl_start_async(
     except Exception as e:
         logging.warning(f"Firecrawl 异步 SDK 调用失败，回退到 HTTP API：{e}")
 
+    # 回退：直接调用 HTTP API 的 /v2/crawl
     endpoint = firecrawl_base.rstrip("/") + "/v2/crawl"
     payload = {
         "url": start_url,
@@ -89,6 +90,7 @@ async def call_firecrawl_start_async(
     }
     headers = {"Authorization": auth_header} if auth_header else None
     try:
+        # 在异步函数中使用 httpx
         try:
             async with httpx.AsyncClient() as ac:
                 resp = await ac.post(endpoint, json=payload, headers=headers, timeout=60)
@@ -96,12 +98,11 @@ async def call_firecrawl_start_async(
                 data = resp.json()
         except Exception as e:
             logging.warning(f"Firecrawl httpx 调用失败，回退到同步请求：{e}")
-
+            # 若无 httpx，则在线程中运行同步请求
             def _sync_post():
                 resp = requests.post(endpoint, json=payload, headers=headers, timeout=60)
                 resp.raise_for_status()
                 return resp.json()
-
             data = await asyncio.to_thread(_sync_post)
 
         if isinstance(data, dict):
@@ -114,18 +115,18 @@ async def call_firecrawl_start_async(
         return {"success": False, "id": None, "url": None}
 
 
-async def call_firecrawl_next_async(next_url: str, auth_header: str = "") -> Dict[str, Any]:
+async def call_firecrawl_next_async(next_url: str, auth_header: str = "", firecrawl_base: Optional[str] = None) -> Dict[str, Any]:
     if not next_url:
         return {}
 
     api_key: Optional[str] = None
     try:
         parsed = urlparse(next_url)
-        api_url = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else None
+        parsed_base = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else None
         m = re.search(r"/v2/crawl/([a-zA-Z0-9\-]+)", next_url)
         crawl_id = m.group(1) if m else None
     except Exception:
-        api_url = None
+        parsed_base = None
         crawl_id = None
 
     if auth_header and auth_header.strip():
@@ -141,17 +142,26 @@ async def call_firecrawl_next_async(next_url: str, auth_header: str = "") -> Dic
 
     headers = {"Authorization": auth_header} if auth_header else None
 
+    # 选择有效的后端地址：外部传入 > 从 next_url 解析 > 环境变量/默认
+    effective_base = None
+    if firecrawl_base and firecrawl_base.strip():
+        effective_base = firecrawl_base.rstrip("/")
+    elif parsed_base:
+        effective_base = parsed_base
+    else:
+        effective_base = os.environ.get("FIRECRAWL_BASE_URL", "http://localhost:3002")
+
     while True:
         result: Optional[Dict[str, Any]] = None
 
-        if crawl_id and api_url:
+        # 优先 SDK（有 crawl_id 时，使用有效后端地址）
+        if crawl_id:
             try:
                 from firecrawl import AsyncFirecrawl, PaginationConfig  # type: ignore
-
-                kwargs: Dict[str, Any] = {}
+                kwargs = {}
                 if api_key:
                     kwargs["api_key"] = api_key
-                kwargs["api_url"] = api_url
+                kwargs["api_url"] = effective_base
                 client = AsyncFirecrawl(**kwargs)
                 pagination = PaginationConfig(id=crawl_id)
                 sdk_status = await client.get_crawl_status(pagination)
@@ -265,14 +275,14 @@ async def main() -> None:
     setup_logger()
     parser = argparse.ArgumentParser(description="使用 Firecrawl 抓取并写入中文 Markdown")
     parser.add_argument("--start-url", help="起始 URL")
-    parser.add_argument("--firecrawl-base", default=os.environ.get("FIRECRAWL_BASE_URL", "https://api.firecrawl.dev"))
-    parser.add_argument("--auth", default=os.environ.get("FIRECRAWL_API_KEY", ""), help="Authorization 头或 API Key")
+    parser.add_argument("--firecrawl-base", default=os.environ.get("FIRECRAWL_BASE_URL", "http://localhost:3002"))
+    parser.add_argument("--auth", default=os.environ.get("FIRECRAWL_API_TOKEN", ""), help="Authorization 头或 API Key")
     parser.add_argument("--output-dir", default=os.environ.get("CN_OUTPUT_DIR", "results"), help="中文 Markdown 输出目录")
     parser.add_argument("--limit", type=int, default=50)
     parser.add_argument("--max-concurrency", type=int, default=10)
-    parser.add_argument("--sitemap", default="auto")
+    parser.add_argument("--sitemap", default="include")
     parser.add_argument("--max-depth", type=int, default=3)
-    parser.add_argument("--crawl-entire-domain", action="store_true")
+    parser.add_argument("--crawl-entire-domain", type=bool, default=True)
     args = parser.parse_args()
 
     auth_header = args.auth
@@ -300,7 +310,7 @@ async def main() -> None:
         return
 
     while True:
-        status = await call_firecrawl_next_async(next_url, auth_header)
+        status = await call_firecrawl_next_async(next_url, auth_header, args.firecrawl_base)
         data = status.get("data") or []
         for item in data:
             try:
