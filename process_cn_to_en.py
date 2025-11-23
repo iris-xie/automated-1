@@ -1,19 +1,22 @@
 import argparse
 import logging
 import os
-import re
+from typing import Dict, Optional, Tuple
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 from ollama import Client  # type: ignore
 
 
 def setup_logger() -> None:
+    os.makedirs("logs", exist_ok=True)
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
+        handlers=[
+            logging.FileHandler(os.path.join("logs", "process_cn_to_en.log"), encoding="utf-8"),
+        ],
     )
 
 
@@ -21,52 +24,16 @@ def ensure_dir(path: str) -> None:
     os.makedirs(path, exist_ok=True)
 
 
-def read_md(path: str) -> Tuple[Dict[str, Any], str]:
+def read_md(path: str) -> Tuple[Dict[str, str], str]:
     with open(path, "r", encoding="utf-8") as f:
         content = f.read()
-    fm: Dict[str, Any] = {}
-    body = content
-    if content.startswith("---\n"):
-        end = content.find("\n---\n", 4)
-        if end != -1:
-            yaml = content[4:end]
-            body = content[end + 5 :]
-            fm = parse_simple_yaml(yaml)
-    return fm, body
+    return {}, content
 
 
-def parse_simple_yaml(yaml: str) -> Dict[str, Any]:
-    result: Dict[str, Any] = {}
-    for line in yaml.splitlines():
-        if not line.strip() or line.strip().startswith("#"):
-            continue
-        if ":" in line:
-            key, val = line.split(":", 1)
-            key = key.strip()
-            val = val.strip().strip('"').strip("'")
-            result[key] = val
-    return result
+ 
 
 
-def build_yaml(fm: Dict[str, Any]) -> str:
-    lines = ["---"]
-    for k, v in fm.items():
-        if isinstance(v, list):
-            lines.append(f"{k}:")
-            for item in v:
-                lines.append(f"  - {item}")
-        else:
-            s = str(v).replace("\"", "\\\"")
-            lines.append(f'{k}: "{s}"')
-    lines.append("---")
-    lines.append("")
-    return "\n".join(lines)
-
-
-def slugify(text: str) -> str:
-    text = re.sub(r"[^\w\-\s]", "", text, flags=re.UNICODE)
-    text = re.sub(r"\s+", "-", text.strip())
-    return text.lower() or "index"
+ 
 
 
 def translate_to_english_with_ollama(
@@ -79,136 +46,68 @@ def translate_to_english_with_ollama(
         return ""
     try:
         import time
-        time.sleep(max(wait, 0))
-        client = Client(host=base_url)
-        prompt = f"Translate the following text into natural English. Keep formatting.\n\n{text}"
-        resp = client.generate(model=model, prompt=prompt)
-        out = resp.get("response") if isinstance(resp, dict) else None
-        if out:
-            return out.strip()
-    except Exception as e:
-        logging.warning(f"Ollama 官方库调用失败，回退到 HTTP：{e}")
-        try:
-            resp = requests.post(
-                base_url.rstrip("/") + "/api/generate",
-                json={"model": model, "prompt": f"Translate to English:\n\n{text}"},
-                timeout=60,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            return (data.get("response") or "").strip()
-        except Exception as ex:
-            logging.error(f"Ollama HTTP 回退失败：{ex}")
+        _start_dt = datetime.now()
+        logging.info(f"Ollama 调用开始: {_start_dt.strftime('%Y-%m-%d %H:%M:%S')} 模式=http 模型={model} 最大等待={wait}s")
+        _t0 = time.perf_counter()
+        prompt = (
+            f"请将以下 Markdown 文本中的中文翻译为自然流畅的英文，保持原有的 Markdown 格式、链接与引用标识；"
+            f"不要添加任何说明或多余内容；不要输出任何 'thinking' 或思考过程，仅输出最终的英文文本。\n\n{text}"
+        )
+        resp = requests.post(
+            base_url.rstrip("/") + "/api/generate",
+            json={
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+            },
+            timeout=wait if wait and wait > 0 else 60,
+        )
+        if resp.status_code == 404:
+            logging.error(f"Ollama 模型未找到：{model}。请先拉取或更换模型。")
+        resp.raise_for_status()
+        _t1 = time.perf_counter()
+        _end_dt = datetime.now()
+        logging.info(f"Ollama 调用结束: {_end_dt.strftime('%Y-%m-%d %H:%M:%S')} 模式=http 模型={model} 状态={resp.status_code} 耗时={_t1 - _t0:.2f}s")
+        data = resp.json()
+        return (data.get("response") or "").strip()
+    except Exception as ex:
+        logging.error(f"Ollama HTTP 调用失败：{ex}")
     return text
 
 
-def extract_keywords_with_ollama(text: str, base_url: str, model: str, wait: float = 10.0) -> List[str]:
-    if not text:
-        return []
-    prompt = (
-        "Extract 5–10 concise keywords (single words or short phrases) from the text. "
-        "Return as a comma-separated list only.\n\n" + text
-    )
-    try:
-        import time
-        time.sleep(max(wait, 0))
-        client = Client(host=base_url)
-        resp = client.generate(model=model, prompt=prompt)
-        out = resp.get("response") if isinstance(resp, dict) else None
-        if out:
-            return [x.strip() for x in out.split(",") if x.strip()]
-    except Exception as e:
-        logging.warning(f"Ollama 官方库调用失败，回退到 HTTP：{e}")
-        try:
-            r = requests.post(
-                base_url.rstrip("/") + "/api/generate",
-                json={"model": model, "prompt": prompt},
-                timeout=60,
-            )
-            r.raise_for_status()
-            data = r.json()
-            out = (data.get("response") or "").strip()
-            return [x.strip() for x in out.split(",") if x.strip()]
-        except Exception as ex:
-            logging.error(f"Ollama HTTP 回退失败：{ex}")
-    return []
-
-
-def extract_categories_and_tags_with_ollama(text: str, base_url: str, model: str, wait: float = 10.0) -> Tuple[List[str], List[str]]:
-    if not text:
-        return [], []
-    prompt = (
-        "Suggest 1–3 broad categories and 3–8 specific tags that best describe the content. "
-        "Return JSON with keys 'categories' and 'tags'. Keep items short.\n\n" + text
-    )
-    try:
-        import time, json
-        time.sleep(max(wait, 0))
-        client = Client(host=base_url)
-        resp = client.generate(model=model, prompt=prompt)
-        out = resp.get("response") if isinstance(resp, dict) else None
-        if out:
-            j = json.loads(out)
-            cats = [x.strip() for x in j.get("categories", []) if x.strip()]
-            tags = [x.strip() for x in j.get("tags", []) if x.strip()]
-            return cats, tags
-    except Exception as e:
-        logging.warning(f"Ollama 官方库调用失败，回退到 HTTP：{e}")
-        try:
-            import json
-            r = requests.post(
-                base_url.rstrip("/") + "/api/generate",
-                json={"model": model, "prompt": prompt},
-                timeout=60,
-            )
-            r.raise_for_status()
-            data = r.json()
-            out = (data.get("response") or "").strip()
-            j = json.loads(out)
-            cats = [x.strip() for x in j.get("categories", []) if x.strip()]
-            tags = [x.strip() for x in j.get("tags", []) if x.strip()]
-            return cats, tags
-        except Exception as ex:
-            logging.error(f"Ollama HTTP 回退失败：{ex}")
-    return [], []
+ 
 
 
 def process_file(path: str, out_dir: str, base_url: str, model: str, wait: float) -> Optional[str]:
     fm, body = read_md(path)
-    cn_title = fm.get("title") or os.path.splitext(os.path.basename(path))[0]
-    cn_desc = fm.get("description") or ""
+    lines = body.splitlines(keepends=True)
+    chunks = ["".join(lines[i : i + 5]) for i in range(0, len(lines), 5)]
+    logging.info(
+        f"拆分 {os.path.basename(path)}: 总行数={len(lines)} 分块数={len(chunks)} 每块最多5行"
+    )
 
-    en_title = translate_to_english_with_ollama(cn_title, base_url, model, wait)
-    en_desc = translate_to_english_with_ollama(cn_desc, base_url, model, wait) if cn_desc else ""
-    en_body = translate_to_english_with_ollama(body, base_url, model, wait)
+    translated_parts = []
+    for idx, chunk in enumerate(chunks, start=1):
+        chunk_line_count = len(chunk.splitlines())
+        logging.info(
+            f"开始翻译分块 {idx}/{len(chunks)}: 行数={chunk_line_count} 字符数={len(chunk)}"
+        )
+        part = translate_to_english_with_ollama(chunk, base_url, model, wait)
+        translated_parts.append(part)
+        logging.info(
+            f"完成翻译分块 {idx}/{len(chunks)}: 输出字符数={len(part)}"
+        )
 
-    keywords = extract_keywords_with_ollama(en_body, base_url, model, wait)
-    categories, tags = extract_categories_and_tags_with_ollama(en_body, base_url, model, wait)
-
-    dt = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    slug = slugify(en_title)
-    url = f"/docs/{slug}/"
-
-    out_fm: Dict[str, Any] = {
-        "title": en_title,
-        "description": en_desc or "",
-        "summary": en_desc or "",
-        "type": "docs",
-        "draft": True,
-        "url": url,
-        "keywords": keywords,
-        "categories": categories,
-        "tags": tags,
-        "lastmod": dt,
-    }
+    en_body = "".join(translated_parts)
+    logging.info(
+        f"合并 {os.path.basename(path)}: 段数={len(chunks)} 合并后字符数={len(en_body)}"
+    )
 
     ensure_dir(out_dir)
-    out_path = os.path.join(out_dir, f"{slug}.md")
-    yaml = build_yaml(out_fm)
+    out_path = os.path.join(out_dir, os.path.basename(path))
     with open(out_path, "w", encoding="utf-8") as f:
-        f.write(yaml)
         f.write(en_body)
-    logging.info(f"写入英文 Markdown: {out_path}")
+    logging.info(f"写入英文 Markdown（无前言）: {out_path}")
     return out_path
 
 
@@ -218,7 +117,7 @@ def main() -> None:
     parser.add_argument("--input-dir", default=os.environ.get("CN_OUTPUT_DIR", "results"), help="中文 Markdown 输入目录")
     parser.add_argument("--output-dir", default=os.environ.get("EN_OUTPUT_DIR", "en"), help="英文 Markdown 输出目录")
     parser.add_argument("--ollama-base", default=os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434"))
-    parser.add_argument("--ollama-model", default=os.environ.get("OLLAMA_MODEL", "qwen2.5:14b"))
+    parser.add_argument("--ollama-model", default=os.environ.get("OLLAMA_MODEL", "qwen3:4b"))
     parser.add_argument("--ollama-wait", type=float, default=float(os.environ.get("OLLAMA_WAIT", 10)))
     args = parser.parse_args()
 

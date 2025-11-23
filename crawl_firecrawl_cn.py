@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import time
+import sys
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
@@ -15,27 +16,64 @@ import requests
 ITEM_COUNTER = 0
 
 
-def setup_logger() -> None:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s",
+def setup_logger():
+    """Configure logging to write to ./logs/crawl.log and console.
+    Creates a sibling 'logs' directory next to this script if missing.
+    """
+    try:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+    except Exception:
+        base_dir = os.getcwd()
+    logs_dir = os.path.join(base_dir, "logs")
+    try:
+        os.makedirs(logs_dir, exist_ok=True)
+    except Exception:
+        # If directory creation fails, continue with console-only logging
+        logs_dir = base_dir
+
+    log_file = os.path.join(logs_dir, "crawl.log")
+
+    formatter = logging.Formatter(
+        "[%(asctime)s] %(levelname)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    # Avoid duplicate handlers if setup_logger is called multiple times
+    root.handlers = []
 
-async def call_firecrawl_start_async(
+    # Console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(formatter)
+    root.addHandler(console_handler)
+
+    # File handler
+    try:
+        file_handler = logging.FileHandler(log_file, encoding="utf-8")
+        file_handler.setLevel(logging.INFO)
+        file_handler.setFormatter(formatter)
+        root.addHandler(file_handler)
+    except Exception as e:
+        # Fall back silently to console-only if file handler fails
+        logging.warning(f"Failed to attach file logger at {log_file}: {e}")
+
+def call_firecrawl_start_async(
     start_url: str,
     firecrawl_base: str,
     auth_header: str = "",
     limit: int = 50,
     max_concurrency: int = 10,
     scrape_options: Optional[Dict[str, Any]] = None,
-    sitemap_strategy: str = "auto",
     max_discovery_depth: int = 3,
     crawl_entire_domain: bool = False,
 ) -> Dict[str, Any]:
     scrape_options = scrape_options or {"formats": ["markdown", "html"]}
-    api_key_env = os.environ.get("FIRECRAWL_API_KEY", "")
+    if not start_url or not isinstance(start_url, str) or not start_url.strip():
+        logging.error("未提供起始 URL")
+        return {"success": False, "id": None, "url": None}
+    api_key_env = os.environ.get("FIRECRAWL_API_KEY") or os.environ.get("FIRECRAWL_TOKEN") or ""
     try:
         from firecrawl import Firecrawl  # type: ignore
     except Exception:
@@ -60,18 +98,14 @@ async def call_firecrawl_start_async(
 
         client = Firecrawl(**firecrawl_kwargs)
 
-        def _sdk_start():
-            return client.start_crawl(
+        started = client.start_crawl(
                 url=start_url,
                 limit=limit,
                 scrape_options=scrape_options,
                 max_concurrency=max_concurrency,
-                sitemap=sitemap_strategy,
                 max_discovery_depth=max_discovery_depth,
-                crawl_entire_domain=crawl_entire_domain,
+                crawl_entire_domain=crawl_entire_domain
             )
-
-        started = await asyncio.to_thread(_sdk_start)
         started_id = started.get("id") if isinstance(started, dict) else getattr(started, "id", None)
         start_status_url = f"{firecrawl_base.rstrip('/')}/v2/crawl/{started_id or ''}"
         return {
@@ -89,29 +123,30 @@ async def call_firecrawl_start_async(
         "scrapeOptions": scrape_options,
         "limit": limit,
         "maxConcurrency": max_concurrency,
-        "sitemap": sitemap_strategy,
         "maxDiscoveryDepth": max_discovery_depth,
         "crawlEntireDomain": crawl_entire_domain,
     }
     headers = {"Authorization": auth_header} if auth_header else None
     try:
-        def _sync_post():
-            resp = requests.post(endpoint, json=payload, headers=headers, timeout=60)
-            resp.raise_for_status()
-            return resp.json()
-        data = await asyncio.to_thread(_sync_post)
-    
+        resp = requests.post(endpoint, json=payload, headers=headers, timeout=60)
+        status_code = resp.status_code
+        resp_text = resp.text
+        resp.raise_for_status()
+        data = resp.json()
         if isinstance(data, dict):
             cid = data.get("id")
             if cid and not data.get("url"):
                 data["url"] = f"{firecrawl_base.rstrip('/')}/v2/crawl/{cid}"
         return data
     except Exception as e:
-        logging.error(f"Firecrawl start failed for {start_url}: {e}")
+        try:
+            logging.error(f"Firecrawl start failed for {start_url}: {status_code} {resp_text}")
+        except Exception:
+            logging.error(f"Firecrawl start failed for {start_url}: {e}")
         return {"success": False, "id": None, "url": None}
 
 
-async def call_firecrawl_next_async(next_url: str, auth_header: str = "", firecrawl_base: Optional[str] = None) -> Dict[str, Any]:
+def call_firecrawl_next_async(next_url: str, auth_header: str = "", firecrawl_base: Optional[str] = None) -> Dict[str, Any]:
     if not next_url:
         return {}
 
@@ -129,7 +164,7 @@ async def call_firecrawl_next_async(next_url: str, auth_header: str = "", firecr
         ah = auth_header.strip()
         api_key = ah[7:].strip() if ah.lower().startswith("bearer ") else ah
     if not api_key:
-        api_key = os.environ.get("FIRECRAWL_API_KEY")
+        api_key = os.environ.get("FIRECRAWL_API_KEY") or os.environ.get("FIRECRAWL_TOKEN")
 
     try:
         min_delay = float(os.environ.get("FIRECRAWL_MIN_DELAY", 3.0))
@@ -159,9 +194,7 @@ async def call_firecrawl_next_async(next_url: str, auth_header: str = "", firecr
                     kwargs["api_key"] = api_key
                 kwargs["api_url"] = effective_base
                 client = Firecrawl(**kwargs)
-                def _sdk_status():
-                    return client.get_crawl_status(crawl_id)
-                sdk_status = await asyncio.to_thread(_sdk_status)
+                sdk_status = client.get_crawl_status(crawl_id)
                 logging.info(f"SDK 状态查询：{sdk_status}")
                 result = {
                     "data": getattr(sdk_status, "data", None),
@@ -175,11 +208,9 @@ async def call_firecrawl_next_async(next_url: str, auth_header: str = "", firecr
 
         if result is None:
             try:
-                def _sync_get():
-                    r = requests.get(next_url, headers=headers, timeout=60)
-                    r.raise_for_status()
-                    return r.json()
-                result = await asyncio.to_thread(_sync_get)
+                r = requests.get(next_url, headers=headers, timeout=60)
+                r.raise_for_status()
+                result = r.json()
             except Exception as e:
                 logging.warning(f"同步请求状态查询失败：{e}")
 
@@ -263,33 +294,36 @@ def write_cn_markdown(item: Dict[str, Any], out_dir: str) -> Optional[str]:
     return path
 
 
-async def main() -> None:
+def main() -> None:
     setup_logger()
     parser = argparse.ArgumentParser(description="使用 Firecrawl 抓取并写入中文 Markdown")
     parser.add_argument("--start-url", help="起始 URL")
     parser.add_argument("--firecrawl-base", default=os.environ.get("FIRECRAWL_BASE_URL", "http://localhost:3002"))
-    parser.add_argument("--auth", default=os.environ.get("FIRECRAWL_API_TOKEN", ""), help="Authorization 头或 API Key")
+    parser.add_argument("--auth", default=(os.environ.get("FIRECRAWL_API_TOKEN") or os.environ.get("FIRECRAWL_TOKEN", "")), help="Authorization 头或 API Key")
     parser.add_argument("--output-dir", default=os.environ.get("CN_OUTPUT_DIR", "results"), help="中文 Markdown 输出目录")
     parser.add_argument("--limit", type=int, default=50)
     parser.add_argument("--max-concurrency", type=int, default=10)
-    parser.add_argument("--sitemap", default="include")
     parser.add_argument("--max-depth", type=int, default=3)
     parser.add_argument("--crawl-entire-domain", type=bool, default=True)
     args = parser.parse_args()
+
+    start_url = args.start_url or os.environ.get("FIRECRAWL_START_URL") or os.environ.get("START_URL")
+    if not start_url:
+        logging.error("未提供起始 URL")
+        return
 
     auth_header = args.auth
     if auth_header and not auth_header.lower().startswith("bearer "):
         auth_header = f"Bearer {auth_header}"
 
-    started = await call_firecrawl_start_async(
-        start_url=args.start_url,
+    started = call_firecrawl_start_async(
+        start_url=start_url,
         firecrawl_base=args.firecrawl_base,
         auth_header=auth_header,
         limit=args.limit,
         max_concurrency=args.max_concurrency,
-        sitemap_strategy=args.sitemap,
         max_discovery_depth=args.max_depth,
-        crawl_entire_domain=args.crawl_entire_domain,
+        crawl_entire_domain=args.crawl_entire_domain
     )
 
     if not started.get("success"):
@@ -302,7 +336,7 @@ async def main() -> None:
         return
 
     while True:
-        status = await call_firecrawl_next_async(next_url, auth_header, args.firecrawl_base)
+        status = call_firecrawl_next_async(next_url, auth_header, args.firecrawl_base)
         data = status.get("data") or []
         for item in data:
             try:
@@ -320,4 +354,8 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("Interrupted.")
+        sys.exit(130)
