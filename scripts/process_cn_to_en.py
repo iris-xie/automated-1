@@ -6,6 +6,7 @@ from datetime import datetime
 
 import requests
 from ollama import Client  # type: ignore
+from .fm_utils import translate_body_cjk_to_en
 
 
 def setup_logger() -> None:
@@ -99,6 +100,11 @@ def process_file(path: str, out_dir: str, base_url: str, model: str, wait: float
         )
 
     en_body = "".join(translated_parts)
+    # 统一中文过滤：如仍有中文，则使用 ArgosTranslate 做段内翻译与清理
+    try:
+        en_body, _replaced = translate_body_cjk_to_en(en_body, cancelled=False)
+    except Exception:
+        pass
     logging.info(
         f"合并 {os.path.basename(path)}: 段数={len(chunks)} 合并后字符数={len(en_body)}"
     )

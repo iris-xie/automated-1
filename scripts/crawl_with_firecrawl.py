@@ -44,6 +44,11 @@ import requests
 from markdownify import markdownify as md  # type: ignore
 from firecrawl import AsyncFirecrawl  # type: ignore
 from ollama import Client  # type: ignore
+from .fm_utils import (
+    build_yaml,
+    get_zh_en_translator,
+    translate_front_matter_fields,
+)
 
 def setup_logger():
     """Configure logging to write to ./logs/crawl.log and console.
@@ -254,49 +259,31 @@ def make_unique_url_from_title(title: str, used: set[str], max_bytes: int = 30) 
 
 def write_markdown_file(dir_path: str, filename: str, title: str, description: str, summary: str, url_str: str, prev_url: str | None, md_body: str, categories: list[str], tags: list[str], keywords: list[str], publish_date: str, lastmod: str):
     os.makedirs(dir_path, exist_ok=True)
-    # Format inline YAML list for keywords
-    def _inline_list(vals: list[str]) -> str:
-        if not vals:
-            return "[]"
-        safe = [f'"{v}"' for v in vals]
-        return "[ " + ", ".join(safe) + " ]"
-    front_matter_lines = [
-        "---",
-        f" publishDate: \"{publish_date}\"",
-        f" lastmod: \"{lastmod}\"",
-        f" title: {title}",
-        f" description: {description}",
-        f" summary: {summary}",
-        f" url: {url_str}",
-        " categories:" if categories else " categories: []",
-    ]
-    if categories:
-        for c in categories:
-            front_matter_lines.append(f"  - {c}")
-    front_matter_lines += [
-        " tags:" if tags else " tags: []",
-    ]
-    if tags:
-        for t in tags:
-            front_matter_lines.append(f"  - {t}")
-    # Add keywords inline list (English SEO keywords)
-    front_matter_lines += [
-        f" keywords: {_inline_list(keywords)}",
-    ]
-    front_matter_lines += [
-        " type: docs",
-        f" prev: {prev_url if prev_url else ''}",
-        " sidebar:",
-        "    open: true",
-        " ---",
-        "",
-    ]
+    # Translate front matter fields if any Chinese leaked
+    translator = get_zh_en_translator()
+    title, description, categories, tags, keywords = translate_front_matter_fields(title, description, categories, tags, keywords, translator)
+    out_fm = {
+        "publishDate": publish_date,
+        "lastmod": lastmod,
+        "title": title,
+        "description": description,
+        "summary": summary,
+        "url": url_str,
+        "categories": categories or [],
+        "tags": tags or [],
+        "keywords": keywords or [],
+        "type": "docs",
+        "prev": prev_url or "",
+        "sidebar": {"open": True},
+    }
+    yaml_text = build_yaml(out_fm)
     full_path = os.path.join(dir_path, filename)
     with open(full_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(front_matter_lines))
-        # Ensure body separated by a blank line
+        f.write(yaml_text)
         if md_body and not md_body.startswith("\n"):
-            f.write(md_body if md_body.startswith("\n") else ("\n" + md_body))
+            f.write("\n" + md_body)
+        else:
+            f.write(md_body)
     return full_path
 
 

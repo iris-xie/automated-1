@@ -1,5 +1,5 @@
 import json
-from ollama_parser import parse_ollama_response
+from .fm_utils import parse_ollama_response
 
 
 if __name__ == "__main__":

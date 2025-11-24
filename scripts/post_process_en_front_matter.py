@@ -8,9 +8,18 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
-from ollama import Client  # type: ignore
-from ollama_parser import parse_ollama_response
 import json
+from .fm_utils import (
+    build_yaml,
+    CJK_REGEX,
+    contains_cjk,
+    get_zh_en_translator,
+    translate_front_matter_fields,
+    translate_body_cjk_to_en,
+    parse_ollama_response,
+)
+
+ 
 
 
 def setup_logger() -> None:
@@ -42,27 +51,7 @@ def read_md(path: str) -> Tuple[Dict[str, Any], str]:
         content = f.read()
     return {}, content
 
-
-
-
-def build_yaml(fm: Dict[str, Any]) -> str:
-    lines = ["---"]
-    for k, v in fm.items():
-        if isinstance(v, list):
-            lines.append(f"{k}:")
-            for item in v:
-                lines.append(f"  - {item}")
-        elif isinstance(v, dict):
-            lines.append(f"{k}:")
-            for sk, sv in v.items():
-                s2 = str(sv).replace('"', '\\"')
-                lines.append(f"  {sk}: {s2}")
-        else:
-            s = str(v).replace('"', '\\"')
-            lines.append(f"{k}: {s}")
-    lines.append("---")
-    lines.append("")
-    return "\n".join(lines)
+ 
 
 
 def scheduled_timestamp_for_index(index: int) -> str:
@@ -87,6 +76,22 @@ def normalize_tag(name: str) -> str:
     s = re.sub(r"[^a-z0-9\-_.]", "", s)
     s = re.sub(r"-{2,}", "-", s)
     return s
+
+
+def slugify_title(title: str, fallback: Optional[str] = None) -> str:
+    s = title.strip().lower()
+    s = re.sub(r"[^a-z0-9\s\-]", "", s)
+    s = re.sub(r"\s+", "-", s)
+    s = re.sub(r"-{2,}", "-", s)
+    s = s.strip("-")
+    if not s and fallback:
+        fb = str(fallback).strip().lower()
+        fb = re.sub(r"[^a-z0-9\s\-]", "", fb)
+        fb = re.sub(r"\s+", "-", fb)
+        fb = re.sub(r"-{2,}", "-", fb)
+        fb = fb.strip("-")
+        s = fb
+    return "/" + s if s else "/"
 
 
 def reconcile_terms(
@@ -213,74 +218,12 @@ def process_file(path: str, base_url: str, model: str, wait: float, idx: int, pr
             logging.info(f"检测到并移除旧前言: 文件={os.path.basename(path)} 字符数={len(old_yaml)}")
     except Exception:
         pass
-    # Step 1: Use ArgosTranslate to translate remaining Chinese to English, pad with spaces
+    # Step 1: 使用封装函数将正文中的中文翻译为英文并覆盖写回
     try:
-        import re
         from datetime import datetime
         _start_dt = datetime.now()
         logging.info(f"ArgosTranslate 开始: {_start_dt.strftime('%Y-%m-%d %H:%M:%S')} 文件={os.path.basename(path)}")
-        cjk_pattern = re.compile(r"[\u3400-\u4DBF\u4E00-\u9FFF\u3000-\u303F\uFE30-\uFE4F\uF900-\uFAFF\uFF00-\uFFEF\U00020000-\U0002A6DF\U0002A700-\U0002B81F\U0002B820-\U0002CEAF\U0002F800-\U0002FA1F]+")
-        from argostranslate import translate as argos_translate  # type: ignore
-        installed = argos_translate.get_installed_languages()
-        zh = next((l for l in installed if getattr(l, 'code', '') == 'zh'), None)
-        en = next((l for l in installed if getattr(l, 'code', '') == 'en'), None)
-        replaced = 0
-        if zh and en:
-            tr = zh.get_translation(en)
-            def repl(m: re.Match) -> str:
-                nonlocal replaced
-                if CANCELLED:
-                    raise KeyboardInterrupt
-                src = m.group(0)
-                try:
-                    out = tr.translate(src)
-                except Exception:
-                    out = ""
-                replaced += 1
-                out = (out or "").strip()
-                return f" {out} " if out else " "
-            body = cjk_pattern.sub(repl, body)
-            def is_cjk(ch: str) -> bool:
-                cp = ord(ch)
-                return (
-                    0x3400 <= cp <= 0x4DBF or
-                    0x4E00 <= cp <= 0x9FFF or
-                    0x20000 <= cp <= 0x2A6DF or
-                    0x2A700 <= cp <= 0x2B81F or
-                    0x2B820 <= cp <= 0x2CEAF or
-                    0xF900 <= cp <= 0xFAFF or
-                    0x2F800 <= cp <= 0x2FA1F or
-                    0x3000 <= cp <= 0x303F or
-                    0xFE30 <= cp <= 0xFE4F or
-                    0xFF00 <= cp <= 0xFFEF
-                )
-            if any(is_cjk(ch) for ch in body):
-                out_chars = []
-                i = 0
-                n = len(body)
-                while i < n:
-                    if CANCELLED:
-                        raise KeyboardInterrupt
-                    if is_cjk(body[i]):
-                        j = i
-                        while j < n and is_cjk(body[j]):
-                            j += 1
-                        src = body[i:j]
-                        try:
-                            trans = tr.translate(src).strip()
-                        except Exception:
-                            trans = ""
-                        replaced += 1
-                        out_chars.append(f" {trans} " if trans else " ")
-                        i = j
-                    else:
-                        out_chars.append(body[i])
-                        i += 1
-                body = "".join(out_chars)
-            body = cjk_pattern.sub("", body)
-        else:
-            body = cjk_pattern.sub(" ", body)
-            body = cjk_pattern.sub("", body)
+        body, replaced = translate_body_cjk_to_en(body, CANCELLED)
         _end_dt = datetime.now()
         logging.info(f"ArgosTranslate 结束: {_end_dt.strftime('%Y-%m-%d %H:%M:%S')} 文件={os.path.basename(path)} 替换段数={replaced}")
         logging.info(f"ArgosTranslate 覆盖写入开始: 文件={os.path.basename(path)} 字符数={len(body)}")
@@ -296,27 +239,30 @@ def process_file(path: str, base_url: str, model: str, wait: float, idx: int, pr
     analysis = analyze_content_with_ollama(body, base_url, model, wait)
     title = (analysis.get("title") or "").strip() or os.path.splitext(os.path.basename(path))[0]
     description = (analysis.get("description") or "").strip()
-    url = fm.get("url") or ""
+    # 根据标题生成 URL（用连字符连接），如果标题为空则使用文件名作为回退
+    url = slugify_title(title, os.path.splitext(os.path.basename(path))[0])
     publish_date = scheduled_timestamp_for_index(idx)
     lastmod = publish_date
     ar_cats = analysis.get("categories", [])
     ar_tags = analysis.get("tags", [])
     ar_kws = analysis.get("keywords", [])
+    translator = get_zh_en_translator()
+    title, description, ar_cats, ar_tags, ar_kws = translate_front_matter_fields(title, description, ar_cats, ar_tags, ar_kws, translator)
     cats = reconcile_terms(ar_cats, cat_pool, 70, base_url, model, True, ollama_wait=wait)
     tags = reconcile_terms(ar_tags, tag_pool, 300, base_url, model, False, ollama_wait=wait)
     keywords = ar_kws
     out_fm: Dict[str, Any] = {
-        "publishDate": f"\"{publish_date}\"",
-        "lastmod": f"\"{lastmod}\"",
+        "publishDate": publish_date,
+        "lastmod": lastmod,
         "title": title,
         "description": description,
         "summary": description,
         "url": url,
         "categories": cats,
         "tags": tags,
-        "keywords": inline_list(keywords),
+        "keywords": keywords,
         "type": "docs",
-        "prev": prev_url or "",
+        "prev": prev_url or "/",
         "sidebar": {"open": True},
     }
     yaml = build_yaml(out_fm)
@@ -346,7 +292,8 @@ def main() -> None:
     if model != args.ollama_model:
         logging.info(f"使用可用模型: {model}")
 
-    prev_url: Optional[str] = None
+    # 初始 prev URL 为根路径
+    prev_url: Optional[str] = "/"
     cat_pool: List[str] = []
     tag_pool: List[str] = []
     idx = 0
