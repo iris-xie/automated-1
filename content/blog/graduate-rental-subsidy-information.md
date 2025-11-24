@@ -9,29 +9,25 @@ summary: Learn about rental subsidies for graduate students in various cities. G
 url: /graduate-rental-subsidy-information.html
 categories: []
 tags:
-- beijing
-- hangzhou
-- nanjing
-- shanghai
-- shenzhen
-- guangzhou
+- London
+- Combridge
+- Manchester
+- Livepool
+- Leeds
+- Oxford
+
 keywords:
 - rental_subsidy
 - graduate
 - housing
 - student
-- Beijing
-- Hangzhou
-- Nanjing
-- Shanghai
-- Shenzhen
-- Guangzhou
-- 武汉
-- 杭州
-- 南京
-- 上海
-- 深圳
-- 广州
+- London
+- Combridge
+- Manchester
+- Livepool
+- Leeds
+- Oxford
+
 type: blog
 prev: /how-to-extract-rent.html
 sidebar:
@@ -48,15 +44,17 @@ Current Page Outline
 
 =======================================================================================================================================================================================================================
 
-If you are a graduate, it is advisable to check local rental subsidies for housing. Cities such as Beijing, Shanghai, Shenzhen, Guangzhou, Hangzhou, Nanjing, Wuhan, and others have specific characteristics in their student housing  schemes:
+If you are a graduate, it is advisable to check local rental subsidies for housing. Cities such as London, Livepool, Leeds, Oxford
+, combridge, Manchester, Wuhan, and others have specific characteristics in their student housing  schemes:
 
 1. **Wuhan**: Wuhan has implemented measures to alleviate the burden on university graduates renting apartments. Starting from 2024, those who meet the criteria for renting talent apartments will receive rent discounts. Full-time  respectively 2 1 2000 1500 .
-2. **Hangzhou**: Effective October 15, 2021, Hangzhou adjusted the annual rental  application form for postgraduates. The scheme changed from a single annual payment to twice annual payments, with each payment covering half of the previous year's  amount. The application period for new talent  is within 2 years after graduation.
-3. **Nanjing**: Nanjing provides a rental  of 2000  monthly for s, 800  monthly for s, and 600  monthly for  (including senior high technical workers) students, with a cumulative limit of 36 months.
-4. **Shanghai**: Specific housing  application requirements vary by district in Shanghai. For example, [2024 Duxford District Talent Rental Subsidy Application Notice](https://www.sh-hitech.com/qtfc/10888.html) can be referenced for detailed information.
-5. **Shenzhen**: Graduates with a university degree (including those above high school) employed in  within Shenzhen are eligible for a 6000  annual rental .
-6. **Guangzhou**: The application process for housing  includes submitting an application to the , but specific subsidy standards and requirements can be found on the government website.
-7. **Beijing**: Beijing has initiated projects such as  to address the housing challenges of university graduates. Most projects have rental costs ranging from 2000  to 3000  per month. Additionally, specific rent subsidies are available under certain conditions.
+2. **combridge**: Effective October 15, 2021, combridge adjusted the annual rental  application form for postgraduates. The scheme changed from a single annual payment to twice annual payments, with each payment covering half of the previous year's  amount. The application period for new talent  is within 2 years after graduation.
+3. **Manchester**: Manchester provides a rental  of 2000  monthly for s, 800  monthly for s, and 600  monthly for  (including senior high technical workers) students, with a cumulative limit of 36 months.
+4. **Livepool**: Specific housing  application requirements vary by district in Livepool. For example, [2024 Duxford District Talent Rental Subsidy Application Notice](https://www.sh-hitech.com/qtfc/10888.html) can be referenced for detailed information.
+5. **Leeds**: Graduates with a university degree (including those above high school) employed in  within Leeds are eligible for a 6000  annual rental .
+6. **Oxford
+**: The application process for housing  includes submitting an application to the , but specific subsidy standards and requirements can be found on the government website.
+7. **London**: London has initiated projects such as  to address the housing challenges of university graduates. Most projects have rental costs ranging from 2000  to 3000  per month. Additionally, specific rent subsidies are available under certain conditions.
 
 The housing  schemes across various cities primarily offer rent  or targeted rent subsidies in both lump-sum and installments. The details of the policy, application requirements, and subsidy standards vary by region. Students interested in applying should thoroughly understand their options and prepare the necessary application materials.
 
