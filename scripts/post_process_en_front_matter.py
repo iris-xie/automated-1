@@ -241,6 +241,9 @@ def process_file(path: str, base_url: str, model: str, wait: float, idx: int, pr
     description = (analysis.get("description") or "").strip()
     # 根据标题生成 URL（用连字符连接），如果标题为空则使用文件名作为回退
     url = slugify_title(title, os.path.splitext(os.path.basename(path))[0])
+    # url 追加 .html
+    if not url.endswith(".html"):
+        url = url + ".html"
     publish_date = scheduled_timestamp_for_index(idx)
     lastmod = publish_date
     ar_cats = analysis.get("categories", [])
@@ -261,15 +264,22 @@ def process_file(path: str, base_url: str, model: str, wait: float, idx: int, pr
         "categories": cats,
         "tags": tags,
         "keywords": keywords,
-        "type": "docs",
+        "type": "blog",
         "prev": prev_url or "/",
         "sidebar": {"open": True},
     }
     yaml = build_yaml(out_fm)
-    with open(path, "w", encoding="utf-8") as f:
+    # 将最终 Markdown 写入 content/<prefix>/ 目录，命名为去掉斜杠的 url + .md
+    prefix_env = os.environ.get("MD_OUTPUT_PREFIX", "blog").strip()
+    prefix_clean = prefix_env.strip("/\\")
+    target_dir = os.path.join("content", prefix_clean) if prefix_clean else "content"
+    ensure_dir(target_dir)
+    target_name = url.replace("/", "") + ".md"
+    target_path = os.path.join(target_dir, target_name)
+    with open(target_path, "w", encoding="utf-8") as f:
         f.write(yaml)
         f.write(body)
-    logging.info(f"更新英文 Markdown 前言: {path}")
+    logging.info(f"更新英文 Markdown 前言并写入: {target_path}")
     return url or None
 
 
