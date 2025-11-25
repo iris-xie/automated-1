@@ -2,7 +2,9 @@ baseURL: "/"
 title: "Rental & Moving Knowledge Hub"
 languageCode: "en-us"
 timeZone: "UTC"
-paginate: 12
+pagination:
+  pagerSize: 12
+enableInlineShortcodes: true
 
 # Use Hextra via Hugo Modules (as in hextra-starter)
 module:

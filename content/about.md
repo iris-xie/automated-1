@@ -24,8 +24,8 @@ type: about
 {{< cards cols=2 >}}
   {{< card link="/urban-renting-survival-guide-a-comfortable-home-abroad.html" title="Urban Renting Survival Guide" icon="home" >}}
   {{< card link="/moving-relocation-guide.html" title="Moving & Relocation Guide" icon="truck" >}}
-  {{< card link="/rental-safety-guide.html" title="Rental Safety Guide" icon="shield" >}}
-  {{< card link="/renters-enjoy-big-discounts.html" title="Renters Enjoy Big Discounts" icon="wallet" >}}
+  {{< card link="/rental-safety-guide.html" title="Rental Safety Guide" icon="shield-check" >}}
+  {{< card link="/renters-enjoy-big-discounts.html" title="Renters Enjoy Big Discounts" icon="tag" >}}
 {{< /cards >}}
 
 ## How Content Is Organized
@@ -35,15 +35,15 @@ type: about
 
 ## Explore by Category
 {{< cards cols=3 >}}
-  {{< card link="/the-first-step-to-renting-a-place-checking-your-wallet.html" title="First Step: Check Your Wallet" icon="credit-card" >}}
+  {{< card link="/the-first-step-to-renting-a-place-checking-your-wallet.html" title="First Step: Check Your Wallet" icon="currency-dollar" >}}
   {{< card link="/online-and-offline-strategies-for-property-hunting.html" title="Property Hunting Strategies" icon="search" >}}
-  {{< card link="/common-tables-and-templates-for-renting.html" title="Renting Templates" icon="table" >}}
-  {{< card link="/moving-preparation-management.html" title="Moving Preparation" icon="list-check" >}}
-  {{< card link="/moving-to-a-new-home-network-electricity-water-and-gas.html" title="Utilities Setup" icon="plug" >}}
-  {{< card link="/residing-comfortably-in-a-new-apartment.html" title="Comfortable Living" icon="sparkles" >}}
-  {{< card link="/rental-laws-and-guidelines-document.html" title="Rental Laws & Guidelines" icon="file-text" >}}
+  {{< card link="/common-tables-and-templates-for-renting.html" title="Renting Templates" icon="collection" >}}
+  {{< card link="/moving-preparation-management.html" title="Moving Preparation" icon="clipboard-check" >}}
+  {{< card link="/moving-to-a-new-home-network-electricity-water-and-gas.html" title="Utilities Setup" icon="lightning-bolt" >}}
+  {{< card link="/residing-comfortably-in-a-new-apartment.html" title="Comfortable Living" icon="star" >}}
+  {{< card link="/rental-laws-and-guidelines-document.html" title="Rental Laws & Guidelines" icon="document-text" >}}
   {{< card link="/take-food-save-money-get-red-packetcoupons-every-day.html" title="Daily Deals & Savings" icon="tag" >}}
-  {{< card link="/abab-tools-support-consultancy.html" title="Tools & Consultancy" icon="tool" >}}
+  {{< card link="/abab-tools-support-consultancy.html" title="Tools & Consultancy" icon="cog" >}}
 {{< /cards >}}
 
 ## Featured Articles
@@ -61,5 +61,3 @@ type: about
 ## Contact & Feedback
 - Found an issue or have a suggestion? Open an issue or send feedback via the site repository.
 - Want a new topic covered? Tell us what decision you are facing; we will write a focused guide.
-
-

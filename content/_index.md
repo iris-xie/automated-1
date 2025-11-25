@@ -8,6 +8,11 @@ summary: A structured entry to practical articles and documentation.
 
 > A curated entry to practical articles on renting, moving, safety, savings and tools. Explore featured guides or jump into topic sections below.
 
+<div>
+  <img src="https://unsplash.com/photos/NiGlB_LallY/download?force=true&w=1600" alt="UK terraced houses street in Broadstairs, United Kingdom" loading="lazy" style="width:100%;height:auto;border-radius:0.5rem;" />
+  <p style="font-size:0.9rem;color:#6b7280;margin-top:0.5rem;">Photo: <a href="https://unsplash.com/photos/NiGlB_LallY" target="_blank" rel="noopener">Rich Tervet</a> on Unsplash (Broadstairs, UK)</p>
+</div>
+
 {{< cards cols=2 >}}
   {{< card link="blog" title="Start with blog" icon="book-open" >}}
   {{< card link="about" title="About the Site" icon="user" >}}
@@ -17,18 +22,18 @@ summary: A structured entry to practical articles and documentation.
 {{< cards cols=2 >}}
   {{< card link="/urban-renting-survival-guide-a-comfortable-home-abroad.html" title="Urban Renting Survival Guide" icon="home" >}}
   {{< card link="/moving-relocation-guide.html" title="Moving & Relocation Guide" icon="truck" >}}
-  {{< card link="/property-check-in-cleaning-clean-your-new-home.html" title="Check-in Cleaning Essentials" icon="sparkles" >}}
-  {{< card link="/lease-agreement-key-tips-on-landlord-verification.html" title="Lease Verification Key Tips" icon="file-text" >}}
+  {{< card link="/property-check-in-cleaning-clean-your-new-home.html" title="Check-in Cleaning Essentials" icon="star" >}}
+  {{< card link="/lease-agreement-key-tips-on-landlord-verification.html" title="Lease Verification Key Tips" icon="document-text" >}}
 {{< /cards >}}
 
 ## Explore by Category
 {{< cards cols=3 >}}
   {{< card link="#preparation-and-house-hunting" title="Preparation & House Hunting" icon="search" >}}
   {{< card link="#moving-and-settle-in" title="Moving & Settle-in" icon="truck" >}}
-  {{< card link="#safety-and-legal" title="Safety & Legal" icon="shield" >}}
-  {{< card link="#savings-and-deals" title="Savings & Deals" icon="wallet" >}}
-  {{< card link="#tools-and-services" title="Tools & Services" icon="tool" >}}
-  {{< card link="#quick-start" title="Quick Start" icon="rocket" >}}
+  {{< card link="#safety-and-legal" title="Safety & Legal" icon="shield-check" >}}
+  {{< card link="#savings-and-deals" title="Savings & Deals" icon="currency-dollar" >}}
+  {{< card link="#tools-and-services" title="Tools & Services" icon="cog" >}}
+  {{< card link="#quick-start" title="Quick Start" icon="location-marker" >}}
 {{< /cards >}}
 
 ## Preparation and House Hunting
