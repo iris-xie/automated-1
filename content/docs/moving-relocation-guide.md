@@ -25,7 +25,7 @@ keywords:
 - packaging
 - moving methods
 - cleaning
-type: blog
+type: docs
 prev: /lease-agreement-key-tips-on-landlord-verification.html
 sidebar:
   open: true
@@ -33,11 +33,11 @@ sidebar:
 
 
 
-[Skip to content](https://zufang.ababtools.com/s6#VPContent)
+Skip to content
 
  
 
-2.2  &  [](https://zufang.ababtools.com/s6#_2-2-%E4%B9%94%E8%BF%81%E4%B9%8B%E5%96%9C-%E6%90%AC%E5%A4%B6-%E9%87%87%E8%B4%AD%E6%94%BB%E7%95%A5)
+2.2  &
 
 ========================================================================================================================================================
 
@@ -45,7 +45,7 @@ sidebar:
 
 Moving is a significant undertaking that requires careful preparation. Before moving, ensure your belongings are organized to avoid loss or damage during the process.
 
-2.1 Pre-moving Preparation [](https://zufang.ababtools.com/s6#_2-1-%E6%90%AC%E5%A4%B6%E5%89%8D%E7%9A%84%E5%87%86%E5%A4%87%E5%B7%A5%E4%BD%9C)
+2.1 Pre-moving Preparation
 
 --------------------------------------------------------------------------------------------------------------------------------
 

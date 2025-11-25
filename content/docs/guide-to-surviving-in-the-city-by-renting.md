@@ -26,7 +26,7 @@ keywords:
 - Moving Tips
 - Electricity and Water Services
 - Legal Renting Rights
-type: blog
+type: docs
 prev: /
 sidebar:
   open: true
@@ -34,7 +34,7 @@ sidebar:
 
 
 
-[Skip to content](https://zufang.ababtools.com/#VPContent)
+Skip to content
 
  Guide to Surviving in the City by Renting 
 ==========
@@ -43,11 +43,11 @@ Save Money, Stay Safe, Avoid Mistakes
 
 A manual for a novice tenant,  essential knowledge about renting, and find an ideal accommodation!
 
-[Start Reading](https://zufang.ababtools.com/guide)
+Start Reading
 
 [Download E-book](https://zufang.ababtools.com/cssczn.png)
 
-![City  logo](https://zufang.ababtools.com/logo-big.svg)
+![City guide logo](https://zufang.ababtools.com/logo-big.svg)
 
 💰
 
@@ -85,8 +85,8 @@ Renters' Big Giveaway
 
 Here are some super-value coupons that can be used to offset cash expenses or enjoy discounts.
 
-[Click here](https://zufang.ababtools.com/flyh) to explore!
+Click here to explore!
 
 | | |
 |---|---|
-| [![ ](https://zufang.ababtools.com/youhuiquan.png)](https://zufang.ababtools.com/flyh) | [🧧 Get Coupons to Make Your Life Cheaper](https://zufang.ababtools.com/flyh)<br><br>Food delivery coupons, travel,  taxi, moving services, packaging, payments, shopping. |
+| ![Coupons banner](https://zufang.ababtools.com/youhuiquan.png) | 🧧 Get Coupons to Make Your Life Cheaper<br><br>Food delivery coupons, travel,  taxi, moving services, packaging, payments, shopping. |

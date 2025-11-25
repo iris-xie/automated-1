@@ -22,7 +22,7 @@ keywords:
 - free red packet coupons
 - festival offers
 - coupons
-type: blog
+type: docs
 prev: /a-promotional-offer-from-alipay.html
 sidebar:
   open: true
@@ -34,7 +34,7 @@ Take food and save money quickly. Get red packets every day, and your wallet won
 
 🤫  tell you: Now order food with the right method, you can easily save money almost every time, and you can use red packets almost every time!
 
-![Logo](https://zufang.ababtools.com/meituanwaimai.jpg)
+![Meituan Waimai logo](https://zufang.ababtools.com/meituanwaimai.jpg)
 
 Scan to get red packet coupons
 =======

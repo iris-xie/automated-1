@@ -1,0 +1,7 @@
+<!-- layouts/_default/_markup/render-link.html -->
+<a href="{{ .Destination | safeURL }}" title="{{ .Text | safeHTML }}"
+   {{ if and (strings.HasPrefix .Destination "http") (not (strings.HasPrefix .Destination site.BaseURL)) }}
+target="_blank" rel="dofollow noopener"
+{{ end }}
+>
+{{ .Text | safeHTML }}</a>

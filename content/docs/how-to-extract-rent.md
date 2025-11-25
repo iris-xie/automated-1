@@ -22,7 +22,7 @@ keywords:
 - rental process
 - required documents for extracting rent
 - city-specific rent policies
-type: blog
+type: docs
 prev: /take-food-save-money-get-red-packetcoupons-every-day.html
 sidebar:
   open: true
@@ -30,15 +30,15 @@ sidebar:
 
 
 
-[Skip to content](https://zufang.ababtools.com/s16#VPContent)
+Skip to content
 
 Current Page Outline
 
-5. Rent  [​](https://zufang.ababtools.com/s16#_5-%E7%A7%9F%E6%88%BF%E5%85%AC%E7%A7%AF%E9%87%91%E6%8F%90%E5%8F%96-%E7%81%B5%E6%B4%BB%E4%BD%BF%E7%94%A8-%E4%B8%BA%E7%94%9F%E6%B4%BB%E5%87%8F%E8%B4%9F)
+5. Rent
 
 =================================================================================================================================================================================================================
 
-1\. When can you extract rent ? [​](https://zufang.ababtools.com/s16#_1-%E5%93%AA%E4%BA%9B%E6%83%85%E5%86%B5%E4%B8%8B%E5%8F%AF%E4%BB%A5%E6%8F%90%E5%8F%96%E7%A7%9F%E6%88%BF%E5%85%AC%E7%A7%AF%E9%87%91)
+1\. When can you extract rent ?
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -50,7 +50,7 @@ Not all rental situations qualify for  extraction. Generally, the following cond
 
 *   : Each city has different extraction policies for , requiring checking the local housing  management center's guidelines.
 
-2\. Extraction process and required documents [​](https://zufang.ababtools.com/s16#_2-%E6%8F%90%E5%8F%96%E6%B5%81%E7%A8%8B%E5%92%8C%E6%89%80%E9%9C%80%E6%9D%90%E6%96%99)
+2\. Extraction process and required documents
 
 -----------------------------------------------------------------------------------------------------------------------------------------
 
@@ -66,4 +66,4 @@ Extracting rent  generally involves the following steps:
 
 *   Transfer : After approval, the housing  management center will transfer the extracted  into your specified bank account.
 
-3\. Extraction  [​](https://zufang.ababtools.com/s16#_3-%E6%8F%90%E5%8F%96%E6%B3%A8%E6%84%8F%E4%BA%8B
+3\. Extraction

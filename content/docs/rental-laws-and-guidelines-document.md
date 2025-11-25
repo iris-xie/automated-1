@@ -27,7 +27,7 @@ keywords:
 - repair responsibilities
 - tenants' obligations
 - property maintenance
-type: blog
+type: docs
 prev: /residing-comfortably-in-a-new-apartment.html
 sidebar:
   open: true
@@ -35,11 +35,11 @@ sidebar:
 
 
 
-[Skip to content](https://zufang.ababtools.com/s12#VPContent)
+Skip to content
 
 Current Page Outline
 
-1. **Renting Related Legal Laws [](https://zufang.ababtools.com/s12#_1-%E7%A7%9F%E6%88%BF%E7%9B%B8%E5%85%B3%E6%B3%95%E5%BE%8B%E6%B3%95%E8%A7%84)**
+1. **Renting Related Legal Laws**
 
 =============================================================================================================================
 
@@ -47,7 +47,7 @@ Although renting an apartment seems simple, it actually involves many legal issu
 
 ---
 
-### Part 1: Contract for Renting [](https://zufang.ababtools.com/s12#%E4%B8%80%E3%80%81%E7%A7%9F%E6%88%BF%E5%90%88%E5%90%8C%E9%82%A3%E4%BA%9B%E4%BA%8B%E5%84%BF)
+### Part 1: Contract for Renting
 
 --------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -62,7 +62,7 @@ Although renting an apartment seems simple, it actually involves many legal issu
 
 ---
 
-### Part 2: Protection Laws for Tenants [](https://zufang.ababtools.com/s12#%E4%BA%8C%E3%80%81%E7%A7%9F%E5%AE%A2%E6%9D%83%E7%9B%8A%E4%BF%9D%E6%8A%A4%E6%B3%95)
+### Part 2: Protection Laws for Tenants
 
 ----------------------------------------------------------------------------------------------------------------------------------
 

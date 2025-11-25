@@ -19,7 +19,7 @@ keywords:
 - flatlet traps
 - contract signed
 - rent agreement
-type: blog
+type: docs
 prev: /viewing-tips-for-rental-properties.html
 sidebar:
   open: true
@@ -27,17 +27,17 @@ sidebar:
 
 
 
-[Skip to content](https://zufang.ababtools.com/s4#VPContent)
+Skip to content
 
 Current Outline
 
-1.4 Contract signed for housing: Pitfalls and deep secrets, learn to spot them [](https://zufang.ababtools.com/s4#_1-4-%E7%A7%9F%E6%88%BF%E7%AD%BE%E5%90%88%E5%90%8C-%E5%9D%91%E5%A4%9A%E5%A5%97%E8%B7%AF%E6%B7%B1-%E6%95%99%E4%BD%A0%E4%B8%80%E7%9C%BC%E7%9C%8B%E7%A9%BF)
+1.4 Contract signed for housing: Pitfalls and deep secrets, learn to spot them
 
 ====================================================================================================================================================================================================================
 
 When searching for a place to live, crossing various obstacles and finally finding the ideal home, the next step is to sign the lease agreement. This is not just a formality; it involves many nuances that can easily lead you into pitfalls if handled carelessly. Therefore, before signing any contract as a worker, make sure to read it carefully to protect your legal rights.
 
-1.4.1 Verify the landlord's identity, be cautious of flatlet traps [](https://zufang.ababtools.com/s4#_1-4-1-%E6%A0%B8%E5%AE%9E%E6%88%BF%E4%B8%9C%E8%BA%AB%E4%BB%BD-%E8%AD%A6%E6%83%95%E4%BA%8C%E6%88%BF%E4%B8%9C%E9%99%B7%E9%98%B1)
+1.4.1 Verify the landlord's identity, be cautious of flatlet traps
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

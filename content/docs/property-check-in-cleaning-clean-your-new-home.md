@@ -22,7 +22,7 @@ keywords:
 - prepare tools
 - floor care
 - deep cleaning tips
-type: blog
+type: docs
 prev: /the-first-step-to-renting-a-place-checking-your-wallet.html
 sidebar:
   open: true
@@ -30,17 +30,17 @@ sidebar:
 
 
 
-[Skip to content](https://zufang.ababtools.com/s5#VPContent)
+Skip to content
 
 Current Page Outline
 
-2.1 Check-in Cleaning: Moving into a new home, starting with a clean sweep to turn the rental unit into your cozy retreat [​](https://zufang.ababtools.com/s5#_2-1-%E5%85%A5%E4%BD%8F%E6%B8%85%E6%B4%81-%E6%96%B0%E5%A7%8B%E6%96%B0%E6%B0%94%E8%B1%A1-%E4%BB%8E%E6%B8%85%E6%B4%81%E5%BC%80%E5%A7%8B-%E6%8A%8A%E5%87%BA%E7%A7%9F%E5%B1%8B%E5%8F%98%E6%88%90%E6%B8%A9%E9%A6%A8%E5%B0%8F%E7%AA%9D)
+2.1 Check-in Cleaning: Moving into a new home, starting with a clean sweep to turn the rental unit into your cozy retreat
 
 ======================================================================================================================================================================================================================================================================================================
 
 **Lease agreement signed, keys in hand, excited to start a new life! But before moving things into the apartment, we need to clean it thoroughly. After all, no one wants to live in a place filled with dust and bacteria. So, check-in cleaning is an essential step that shouldn't be overlooked.**
 
-2.1.1 Preparation for Cleaning Tools [​](https://zufang.ababtools.com/s5#_2-1-1-%E5%87%86%E5%A4%87%E6%B8%85%E6%B4%81%E5%B7%A5%E5%85%B7)
+2.1.1 Preparation for Cleaning Tools
 
 ----------------------------------------------------------------------------------------------------------------
 

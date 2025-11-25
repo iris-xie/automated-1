@@ -28,7 +28,7 @@ keywords:
 - Leeds
 - Oxford
 
-type: blog
+type: docs
 prev: /how-to-extract-rent.html
 sidebar:
   open: true
@@ -36,11 +36,11 @@ sidebar:
 
 
 
-[ ](https://zufang.ababtools.com/s15#VPContent)
+
 
 Current Page Outline
 
-4. National cities' university students rental  application schemes [](https://zufang.ababtools.com/s15#_4-%E5%85%A8%E5%9B%BD%E5%90%84%E5%A4%A7%E5%9F%8E%E5%B8%82%E9%AB%98%E6%A0%A1%E7%94%9F%E7%A7%9F%E6%88%BF%E8%A1%A5%E8%B4%B4%E7%94%B3%E8%AF%B7%E6%96%B9%E6%A1%88)
+4. National cities' university students rental application schemes
 
 =======================================================================================================================================================================================================================
 
@@ -58,7 +58,7 @@ If you are a graduate, it is advisable to check local rental subsidies for housi
 
 The housing  schemes across various cities primarily offer rent  or targeted rent subsidies in both lump-sum and installments. The details of the policy, application requirements, and subsidy standards vary by region. Students interested in applying should thoroughly understand their options and prepare the necessary application materials.
 
-All city-specific housing  policies are summarized on a dedicated webpage [](https://zufang.ababtools.com/s15#%E5%90%84%E5%9F*   Fuzhou Public Housing Application for Rent
+All city-specific housing policies are summarized on a dedicated webpage
     
 *   [Xiamen New Graduates' "5-Year 50% Rent Subsidy" for Students](https://www.xm.gov.cn/jdhy/rdhy/202404/t20240429_2844019.htm)
      [Application Process](https://mp.weixin.qq.com/s/Qd462-Q9XlESL-5i1sSliA) 

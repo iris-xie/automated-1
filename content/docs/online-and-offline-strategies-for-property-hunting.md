@@ -34,7 +34,7 @@ keywords:
 - property searches
 - property tips
 - location selection
-type: blog
+type: docs
 prev: /moving-preparation-management.html
 sidebar:
   open: true
@@ -42,17 +42,17 @@ sidebar:
 
 
 
-[Skip to content](https://zufang.ababtools.com/s2#VPContent)
+Skip to content
 
 Current page outline
 
-1.2 Finding properties: online and offline strategies, enhance your eyesight to avoid traps [ ](https://zufang.ababtools.com/s2#_1-2-%E5%AF%BB%E6%89%BE%E6%88%BF%E6%BA%90-%E7%BA%BF%E4%B8%8A%E7%BA%BF%E4%B8%8B%E4%B8%A4%E6%89%8B%E6%8A%93-%E6%93%A6%E4%BA%AE%E7%9C%BC%E7%9D%9B%E9%98%B2%E9%99%B7%E9%98%B1)
+1.2 Finding properties: online and offline strategies, enhance your eyesight to avoid traps
 
 ==================================================================================================================================================================================================================================================
 
 Proverbs say, , finding a house is no different. You need to choose the right place first before you can achieve the best results. Now that there are numerous channels for finding houses online and offline, let's take a look:
 
-1.2.1 Online platforms: official platforms, social media, renting apps [ ](https://zufang.ababtools.com/s2#_1-2-1-%E7%BA%BF%E4%B8%8A%E5%B9%B3%E5%8F%B0-%E5%AE%98%E6%96%B9%E5%B9%B3%E5%8F%B0%E3%80%81%E7%A4%BE%E4%BA%A4%E5%AA%92%E4%BD%93%E3%80%81%E7%A7%9F%E6%88%BFapp)
+1.2.1 Online platforms: official platforms, social media, renting apps
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

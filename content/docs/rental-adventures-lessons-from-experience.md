@@ -31,7 +31,7 @@ keywords:
 - landlord
 - property inspection
 - neighborhood
-type: blog
+type: docs
 prev: /leasing-tactics-smooth-transfers.html
 sidebar:
   open: true

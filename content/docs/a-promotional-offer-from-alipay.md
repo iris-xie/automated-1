@@ -19,7 +19,7 @@ keywords:
 - red packet offer
 - big money
 - PAYPAL promotion
-type: blog
+type: docs
 prev: /rental-safety-guide.html
 sidebar:
   open: true
@@ -27,7 +27,7 @@ sidebar:
 
 
 
-[Skip to content](https://zufang.ababtools.com/zfb#VPContent)
+Skip to content
 
 **Current Page Outline**
 
@@ -43,7 +43,7 @@ Brothers and sisters, look here! Alipay has just dropped a bomb with these red p
 
 Just scan the QR code below and grab your red packet right away! 📞
 
-![zhifubao](https://zufang.ababtools.com/zfb.png)
+![Alipay logo](https://zufang.ababtools.com/zfb.png)
 
 This QR code is forever valid. Every time you make a payment, just scan this code to save money. 💰
 

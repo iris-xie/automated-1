@@ -31,7 +31,7 @@ keywords:
 - selecting tenants
 - leasing communication
 - sublease approval
-type: blog
+type: docs
 prev: /rental-laws-and-guidelines-document.html
 sidebar:
   open: true
@@ -39,7 +39,7 @@ sidebar:
 
 
 
-[Skip to content](https://zufang.ababtools.com/s10#VPContent)
+Skip to content
 
 Current Page Outline
 

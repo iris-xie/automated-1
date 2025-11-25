@@ -23,7 +23,7 @@ keywords:
 - budget considerations
 - rental housing
 - financial planning
-type: blog
+type: docs
 prev: /urban-renting-survival-guide-a-comfortable-home-abroad.html
 sidebar:
   open: true

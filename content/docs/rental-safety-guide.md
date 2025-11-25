@@ -22,7 +22,7 @@ keywords:
 - security tips
 - personal information protection
 - safety precautions
-type: blog
+type: docs
 prev: /abab-tools-support-consultancy.html
 sidebar:
   open: true
@@ -30,7 +30,7 @@ sidebar:
 
 
 
-[Skip to content](https://zufang.ababtools.com/s17#VPContent)
+Skip to content
 
 Current Page Outline
 

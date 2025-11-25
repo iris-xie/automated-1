@@ -5,7 +5,7 @@ timeZone: "UTC"
 pagination:
   pagerSize: 12
 enableInlineShortcodes: true
-
+timeZone: 'Europe/London'
 # Use Hextra via Hugo Modules (as in hextra-starter)
 module:
   imports:
@@ -15,6 +15,12 @@ markup:
   goldmark:
     renderer:
       unsafe: true
+
+sitemap:
+  changeFreq: "yearly"
+  filename: sitemap.xml
+  priority: 0.5
+  lastmod: true
 
 outputs:
   home: [HTML, RSS]
@@ -50,21 +56,21 @@ menu:
     - name: Home
       url: "/"
       weight: 1
-    - name: Blog
-      url: "/blog/"
+    - name: Docs
+      url: "/docs/"
       weight: 20
     - name: About
       url: "/about/"
       weight: 30
     - name: Search
-      weight: 4
+      weight: 400
       params:
         type: search
 
 taxonomies:
   tag: tags
   category: categories
-title: My Site
+title: Rental & Moving Knowledge Hub
 
 # import hextra as module
 module:
@@ -88,4 +94,12 @@ params:
 
   footer:
     displayCopyright: false
-    displayPoweredBy: true
+    displayPoweredBy: false
+  # Search
+  search:
+    enable: true
+    type: flexsearch
+
+    flexsearch:
+      # index page by: content | summary | heading | title
+      index: content

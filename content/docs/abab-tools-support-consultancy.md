@@ -20,43 +20,36 @@ keywords:
 - ABAB Tools Consultancy
 - Technical Support
 - Custom Solutions
-type: blog
+type: docs
 prev: /common-tables-and-templates-for-renting.html
 sidebar:
   open: true
 ---
 
 
+Skip to content
 
-[ ](https://zufang.ababtools.com/s14#VPContent)
+### Overview
 
-###  
-
- 
-
-3.   [](https://zufang.ababtools.com/s14#_3-%E7%A7%9F%E6%88%BF%E7%BB%B4%E6%9D%83%E9%80%94%E5%BE%84%E5%92%8C%E6%9C%BA%E6%9E%84)
+3. Tenant Rights and Support Channels
 
 =========================================================================================================================================
 
  
 
-3.1   [](https://zufang.ababtools.com/s14#_3-1-%E5%8F%8B%E5%96%84%E5%8D%8F%E5%95%86-%E4%BB%A5%E5%92%8C%E4%B8%BA%E8%B4%B5)
+3.1 Amicable Negotiation
 
 -----------------------------------------------------------------------------------------------------------------------------------
 
- “ ” 
+Practical tips:
 
-** **
+- Communicate clearly and document agreements in writing.
+- Focus on solutions; avoid escalating conflicts.
 
-*  
-*  
-
-3.2   [](https://zufang.ababtools.com/s14#_3-2-%E7%A4%BE%E5%8C%BA%E5%8A%9B%E9%87%8F-%E8%B0%83%E8%A7%A3%E5%B8%AE%E5%BF%99)
+3.2 Community Mediation Support
 
 -----------------------------------------------------------------------------------------------------------------------------------
 
- 
+Who can help:
 
-** **
-
-*  
+- Property management, community committees, local mediation centers.
