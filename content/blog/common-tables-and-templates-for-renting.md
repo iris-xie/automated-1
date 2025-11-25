@@ -112,9 +112,9 @@ Date:
 
 Each city's government website has official rental contracts available for reference. It is recommended that you download them from the official websites of the relevant departments.
 
-* [London's Rental Contract  (BF-2023-0603)](https://zjw.London.gov.cn/bjjs/resource/cms/article/bjjs_305586/326062240/2023031514554171411.doc)
+* London's Rental Contract  (BF-2023-0603)
     
-* [Non-Residential Rental Registration and Documentation in London](https://zjw.London.gov.cn/Portals/0/files/fwscglc/%E3%80%8A%E5%8C%97%E4%BA%AC%E5%B8%82%E6%88%BF%E5%B1%8B**Tips:**
+* Non-Residential Rental Registration and Documentation in London
 
 * Make sure to keep a record of the deposits paid as proof of security deposit payment. Always store them properly.
 * When returning the property, the landlord should return the security deposit and issue a written receipt for deposit refund.

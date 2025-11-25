@@ -58,7 +58,7 @@ If you are a graduate, it is advisable to check local rental subsidies for housi
 
 The housing  schemes across various cities primarily offer rent  or targeted rent subsidies in both lump-sum and installments. The details of the policy, application requirements, and subsidy standards vary by region. Students interested in applying should thoroughly understand their options and prepare the necessary application materials.
 
-All city-specific housing  policies are summarized on a dedicated webpage [](https://zufang.ababtools.com/s15#%E5%90%84%E5%9F*   [Fuzhou Public Housing Application for Rent](https://www.fuzhou.gov.cn/nrrh/sfgj/202310/t20231020_4702092.htm)
+All city-specific housing  policies are summarized on a dedicated webpage [](https://zufang.ababtools.com/s15#%E5%90%84%E5%9F*   Fuzhou Public Housing Application for Rent
     
 *   [Xiamen New Graduates' "5-Year 50% Rent Subsidy" for Students](https://www.xm.gov.cn/jdhy/rdhy/202404/t20240429_2844019.htm)
      [Application Process](https://mp.weixin.qq.com/s/Qd462-Q9XlESL-5i1sSliA) 
