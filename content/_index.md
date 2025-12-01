@@ -13,7 +13,7 @@ summary: A structured entry to practical articles and documentation.
     <h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 1rem; letter-spacing: 0.5px; text-shadow: 0 2px 8px rgba(0,0,0,0.25);">Rental & Moving Knowledge Hub</h1>
     <p style="font-size: 1.25rem; opacity: 0.92; margin-bottom: 2rem;">Your comprehensive guide to renting, moving, and living smarter</p>
     <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-      {{< card link="blog" title="Explore Blog" icon="book-open" style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3); color: white; box-shadow: 0 8px 20px rgba(0,0,0,0.25);" >}}
+      {{< card link="docs" title="Explore Docs" icon="book-open" style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3); color: white; box-shadow: 0 8px 20px rgba(0,0,0,0.25);" >}}
       {{< card link="about" title="About Us" icon="user" style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3); color: white; box-shadow: 0 8px 20px rgba(0,0,0,0.25);" >}}
     </div>
   </div>
@@ -134,7 +134,7 @@ summary: A structured entry to practical articles and documentation.
     Explore our comprehensive guides and make your renting experience seamless
   </p>
   {{< cards cols=2 >}}
-    {{< card link="blog" title="Browse All Articles" icon="book-open" >}}
+    {{< card link="docs" title="Browse All Articles" icon="book-open" >}}
     {{< card link="about" title="Learn More" icon="information-circle" >}}
   {{< /cards >}}
 </div>
