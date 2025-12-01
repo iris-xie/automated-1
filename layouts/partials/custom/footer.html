@@ -1,12 +1,9 @@
 {{ $cfg := site.Params.customFooter }}
-{{/* */}}
 
 {{ if $cfg }}
-<div class="footer-wrapper">
-    <div class="footer-container">
-        <ul class="footer-links">
+<div class="hextra-custom-footer" style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(0,0,0,0.08); text-align: center;">
   {{ with $cfg.links }}
-    <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.75rem 1rem;">
+    <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; justify-content: center; align-items: center;">
       {{ range . }}
         {{ if and .title .url }}
           <li>
@@ -18,6 +15,5 @@
       {{ end }}
     </ul>
   {{ end }}
-</div>
 </div>
 {{ end }}
