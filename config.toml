@@ -1,0 +1,96 @@
+baseURL = "/"
+title = "Rental & Moving Knowledge Hub"
+languageCode = "en-us"
+timeZone = "Europe/London"
+enableInlineShortcodes = true
+
+[pagination]
+pagerSize = 12
+
+[module]
+  [[module.imports]]
+  path = "github.com/imfing/hextra"
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+    unsafe = true
+  [markup.highlight]
+  noClasses = false
+
+[sitemap]
+changeFreq = "yearly"
+filename = "sitemap.xml"
+priority = 0.5
+lastmod = true
+
+[outputs]
+home = ["HTML", "RSS"]
+section = ["HTML"]
+page = ["HTML"]
+
+[permalinks]
+blog = "/:slug.html"
+
+[menu]
+  [[menu.main]]
+  name = "Home"
+  url = "/"
+  weight = 1
+  [[menu.main]]
+  name = "Docs"
+  url = "/docs/"
+  weight = 20
+  [[menu.main]]
+  name = "About"
+  url = "/about/"
+  weight = 30
+  [[menu.main]]
+  name = "Search"
+  weight = 400
+    [menu.main.params]
+    type = "search"
+
+[taxonomies]
+tag = "tags"
+category = "categories"
+
+[params]
+description = "Curated guides on renting, moving, safety, deals and tools."
+summary = "A structured entry to practical articles and documentation."
+
+  [params.theme]
+  defaultTheme = "system"
+
+  [params.highlight]
+  style = "monokai"
+
+  [params.navbar]
+  title = "Rental Hub"
+  showSearch = true
+  displayTitle = true
+  displayLogo = false
+
+  [params.footer]
+  enable = false
+  message = "Powered by Hugo & Hextra"
+  displayCopyright = false
+  displayPoweredBy = false
+
+  [params.customFooter]
+  title = "“Friend Links"
+    [[params.customFooter.links]]
+    title = "East Asian in UK"
+    url = "https://www.eastas.co.uk/"
+    [[params.customFooter.links]]
+    title = "UK Website Navigator"
+    url = "https://www.uknavi.co.uk/"
+    [[params.customFooter.links]]
+    title = "How to rent in UK"
+    url = "https://www.uknavi.co.uk/"
+
+  [params.search]
+  enable = true
+  type = "flexsearch"
+    [params.search.flexsearch]
+    index = "content"

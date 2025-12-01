@@ -1,0 +1,23 @@
+{{ $cfg := site.Params.customFooter }}
+{{/* */}}
+
+{{ if $cfg }}
+<div class="hextra-custom-footer" style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(0,0,0,0.08);">
+  {{ with $cfg.title }}
+    <div style="font-weight: 600; margin-bottom: 0.5rem; color: #6b7280;">{{ . }}</div>
+  {{ end }}
+  {{ with $cfg.links }}
+    <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.75rem 1rem;">
+      {{ range . }}
+        {{ if and .title .url }}
+          <li>
+            <a href="{{ .url }}" rel="dofollow noopener" target="_blank" style="color: #4b5563; text-decoration: none;">
+              {{ .title }}
+            </a>
+          </li>
+        {{ end }}
+      {{ end }}
+    </ul>
+  {{ end }}
+</div>
+{{ end }}
