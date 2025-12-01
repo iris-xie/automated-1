@@ -72,7 +72,7 @@ summary = "A structured entry to practical articles and documentation."
   displayLogo = false
 
   [params.footer]
-  enable = false
+  enable = true
   message = "Powered by Hugo & Hextra"
   displayCopyright = false
   displayPoweredBy = false
