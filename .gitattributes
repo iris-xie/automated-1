@@ -1,0 +1,10 @@
+## Normalize LF in repo, checkout CRLF on Windows
+* text eol=crlf
+
+# Explicit patterns commonly used in this project
+*.md   text eol=crlf
+*.html text eol=crlf
+*.toml text eol=crlf
+*.yaml text eol=crlf
+*.yml  text eol=crlf
+
